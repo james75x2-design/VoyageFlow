@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- 
+    VOYAGEFLOW DEPLOYMENT & MONETISATION GUIDE (KIWI EDITION)
+    =========================================
+    1. Deploy worker.js to Cloudflare Workers.
+    2. Replace the 'WORKER_URL' constant below with your actual worker URL.
+    3. HOW TO GET COMMISSIONED:
+       To earn money on bookings, register for these affiliate networks and replace the 
+       placeholder ID variables in createAffiliateCard() below:
+       
+       - Kiwi.com (via Travelpayouts): partners.travelpayouts.com
+       - Booking.com (for Hotels): partners.booking.com
+       - Viator (for Tours directly): partners.viator.com
+       - World Nomads (for Insurance): worldnomads.com/affiliate
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoyageFlow — Your AI Travel Agent</title>
+  
+  <!-- Import Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* Premium Visual Design System Variables */
+    :root {
+      --bg-color: #0a1628;
+      --surface-color: #0f2040;
+      --elevated-color: #162d52;
+      --primary-accent: #ff6b35;
+      --primary-accent-hover: #e0531f;
+      --secondary-color: #00b4d8;
+      --text-primary: #f0f4f8;
+      --text-secondary: #8ba3c1;
+      --muted-color: #3d5a80;
+      --success-color: #4ecdc4;
+      --error-color: #ff4d4d;
+      --border-gradient: linear-gradient(135deg, var(--primary-accent), var(--secondary-color));
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Ambient Ocean-Aurora Animated Background */
+    body::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 30% 30%, #102a45 0%, transparent 40%),
+                  radial-gradient(circle at 75% 65%, #0d2c3e 0%, transparent 45%);
+      animation: aurora 25s ease-in-out infinite alternate;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    @keyframes aurora {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      50% {
+        transform: translate(-50px, 30px) rotate(10deg);
+      }
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+    }
+
+    /* Primary Application Structure */
+    .app-container {
+      max-width: 900px;
+      width: 100%;
+      height: 100vh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      padding: 0 16px;
+      position: relative;
+    }
+
+    /* Sticky Modern Header */
+    header {
+      padding: 18px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      background: rgba(10, 22, 40, 0.7);
+      z-index: 10;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      stroke: var(--primary-accent);
+      stroke-width: 2;
+      fill: none;
+      animation: gentle-bob 4s ease-in-out infinite;
+    }
+
+    @keyframes gentle-bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    .brand-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .tagline {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-secondary);
+    }
+
+    .btn-new-trip {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-new-trip:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--secondary-color);
+      color: var(--secondary-color);
+    }
+
+    /* Scrollable Chat Area */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    }
+
+    main::-webkit-scrollbar {
+      width: 6px;
+    }
+    main::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    /* Empty/Welcome State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      margin: auto 0;
+    }
+
+    .rotating-compass {
+      width: 110px;
+      height: 110px;
+      margin-bottom: 24px;
+      stroke: var(--secondary-color);
+      stroke-width: 1.5;
+      fill: none;
+      filter: drop-shadow(0 0 15px rgba(0, 180, 216, 0.3));
+      animation: spin 30s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .empty-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      max-width: 480px;
+      line-height: 1.5;
+    }
+
+    .suggestions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    @media (max-width: 600px) {
+      .suggestions-grid {
+        grid-template-columns: 1fr;
+      }
+      .empty-title {
+        font-size: 26px;
+      }
+    }
+
+    .suggestion-chip {
+      background: var(--surface-color);
+      border: 1px solid rgba(0, 180, 216, 0.15);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .suggestion-chip:hover {
+      border-color: var(--primary-accent);
+      background: rgba(255, 107, 53, 0.05);
+      transform: translateY(-2px);
+    }
+
+    /* Chat Elements & Glassmorphism bubbles */
+    .chat-row {
+      display: flex;
+      width: 100%;
+      margin-bottom: 4px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-row.user {
+      justify-content: flex-end;
+    }
+
+    .chat-row.model {
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .avatar-icon {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 50%;
+      background: var(--elevated-color);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      stroke: var(--secondary-color);
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .bubble {
+      max-width: 75%;
+      padding: 16px 20px;
+      font-size: 15px;
+      line-height: 1.6;
+      word-wrap: break-word;
+    }
+
+    @media (max-width: 600px) {
+      .bubble {
+        max-width: 85%;
+      }
+    }
+
+    .user .bubble {
+      background: rgba(0, 180, 216, 0.08);
+      border: 1px solid rgba(0, 180, 216, 0.25);
+      border-radius: 18px 18px 4px 18px;
+      color: var(--text-primary);
+    }
+
+    .model .bubble {
+      background: rgba(15, 32, 64, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px 18px 18px 4px;
+      color: var(--text-primary);
+    }
+
+    /* Markdown Render Styling */
+    .bubble p {
+      margin-bottom: 12px;
+    }
+    .bubble p:last-child {
+      margin-bottom: 0;
+    }
+    .bubble h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 20px 0 10px 0;
+      color: var(--text-primary);
+    }
+    .bubble h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 16px 0 8px 0;
+      color: var(--secondary-color);
+    }
+    .bubble ul, .bubble ol {
+      margin: 10px 0 16px 20px;
+    }
+    .bubble li {
+      margin-bottom: 6px;
+    }
+    .bubble hr {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin: 16px 0;
+    }
+    .bubble strong {
+      color: var(--secondary-color);
+      font-weight: 600;
+    }
+    .bubble em {
+      font-style: italic;
+    }
+    
+    /* Code styling */
+    .bubble code {
+      font-family: monospace;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13.5px;
+    }
+    .bubble pre {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 12px 0;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .bubble pre code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    /* Comparison Table Styling */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 16px 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    th, td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    th {
+      background: var(--elevated-color);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 10px 14px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--secondary-color);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+
+    /* Affiliate Link Card Architecture (Pricing Engine Included) */
+    .affiliate-card {
+      margin-top: 18px;
+      background: var(--surface-color);
+      border-radius: 14px;
+      padding: 18px;
+      position: relative;
+      border: 1px solid transparent;
+      background-image: linear-gradient(var(--surface-color), var(--surface-color)), var(--border-gradient);
+      background-origin: border-box;
+      background-clip: content-box, border-box;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .affiliate-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Price Comparison Table UI */
+    .price-compare-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .compare-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--elevated-color);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .compare-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .compare-options {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .compare-option {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .compare-name {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .compare-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--success-color);
+    }
+    
+    .compare-price.premium {
+      color: var(--primary-accent);
+    }
+
+    .affiliate-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 480px) {
+      .affiliate-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .affiliate-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 107, 53, 0.1);
+      border: 1px solid rgba(255, 107, 53, 0.3);
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: 25px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .affiliate-btn:hover {
+      background: var(--primary-accent);
+      border-color: var(--primary-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+    }
+
+    .affiliate-disclaimer {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 12px;
+      font-style: italic;
+    }
+
+    /* Fixed Input System */
+    .input-wrapper {
+      padding: 14px 0;
+      background: transparent;
+      position: relative;
+    }
+
+    /* System Alert Area (For errors) */
+    .error-banner {
+      background: rgba(255, 77, 77, 0.12);
+      border: 1px solid rgba(255, 77, 77, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .error-msg {
+      font-size: 13.5px;
+      color: #ff9999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .error-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .error-close:hover {
+      color: var(--text-primary);
+    }
+
+    /* Textarea Controls */
+    .input-bar {
+      display: flex;
+      align-items: flex-end;
+      background: var(--surface-color);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 8px 12px 8px 18px;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .input-bar:focus-within {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 12px rgba(0, 180, 216, 0.15);
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      resize: none;
+      max-height: 120px;
+      height: 24px;
+      line-height: 1.5;
+      padding: 2px 0;
+    }
+
+    textarea::placeholder {
+      color: var(--text-secondary);
+      transition: opacity 0.3s ease;
+    }
+
+    .input-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .char-counter {
+      font-size: 11px;
+      color: var(--muted-color);
+      font-weight: 500;
+    }
+
+    .btn-send {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary-accent);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background: var(--primary-accent-hover);
+      transform: scale(1.05);
+    }
+
+    .btn-send:disabled {
+      background: var(--muted-color);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .btn-send svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    /* System Footer */
+    footer {
+      text-align: center;
+      padding-bottom: 12px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.8;
+      line-height: 1.4;
+    }
+
+    /* Custom Dialog for Reset confirmation */
+    .custom-dialog-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(5, 11, 21, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .custom-dialog {
+      background: var(--surface-color);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .custom-dialog h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .custom-dialog p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .dialog-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .dialog-btn {
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 13.5px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .dialog-btn.cancel {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+
+    .dialog-btn.cancel:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .dialog-btn.confirm {
+      background: var(--primary-accent);
+      color: #ffffff;
+    }
+
+    .dialog-btn.confirm:hover {
+      background: var(--primary-accent-hover);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Header -->
+    <header role="banner">
+      <div class="logo-container">
+        <!-- SVG Inline Compass Logo -->
+        <svg class="logo-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M16.2 7.8l-2 6.2-6.2 2 2-6.2 6.2-2z" fill="currentColor" opacity="0.3"/>
+          <path d="M16.2 7.8l-2 6.2-6.2 2 2-6.2 6.2-2z" />
+          <circle cx="12" cy="12" r="1" fill="currentColor" />
+        </svg>
+        <div class="brand-details">
+          <span class="logo-text">VoyageFlow</span>
+          <span class="tagline">AI Travel Agent · Free</span>
+        </div>
+      </div>
+      <button class="btn-new-trip" id="new-trip-btn" aria-label="Start a new trip conversation">
+        <span>New Trip</span>
+      </button>
+    </header>
+
+    <!-- Main Scrollable Chat Area -->
+    <main id="chat-scroller" role="log" aria-live="polite">
+      
+      <!-- Welcome Empty State -->
+      <div class="empty-state" id="empty-state-container">
+        <!-- Elegant Compass Rotating Logo -->
+        <svg class="rotating-compass" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+          <path d="M16.2 7.8l-2 6.2-6.2 2 2-6.2z" fill="var(--primary-accent)" />
+          <circle cx="12" cy="12" r="1.5" />
+        </svg>
+        
+        <h1 class="empty-title" id="welcome-heading">Where to next?</h1>
+        <p class="empty-subtitle" id="welcome-subheading">Your AI travel expert — free, instant, no sign up required. Let's design your perfect journey together.</p>
+        
+        <!-- Interactive chips to pre-fill prompts (dynamically altered by cookies) -->
+        <div class="suggestions-grid" id="suggestions-grid-target" role="group" aria-label="Quick start options"></div>
+      </div>
+
+      <!-- Messages container dynamically injected here -->
+      <div id="messages-target" style="display: flex; flex-direction: column; gap: 20px; width: 100%;"></div>
+
+    </main>
+
+    <!-- Error Banner and Sticky Input Bar -->
+    <div class="input-wrapper">
+      
+      <!-- Custom Dismissible Error Banner -->
+      <div class="error-banner" id="error-banner" role="alert">
+        <div class="error-msg">
+          <span id="error-symbol">⚠️</span>
+          <span id="error-text">Connection issue — please check your internet</span>
+        </div>
+        <button class="error-close" id="error-close-btn" aria-label="Close error message">×</button>
+      </div>
+
+      <!-- User Chat Form -->
+      <form id="chat-form" onsubmit="event.preventDefault(); handleFormSubmit();">
+        <div class="input-bar">
+          <textarea id="chat-input" placeholder="Ask me anything about your next trip..." maxlength="4000" rows="1" aria-label="Message to VoyageFlow AI travel agent"></textarea>
+          <div class="input-actions">
+            <span class="char-counter" id="char-counter">0/4000</span>
+            <button class="btn-send" id="send-btn" type="submit" disabled aria-label="Send Message">
+              <svg viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sticky Footer -->
+    <footer role="contentinfo">
+      VoyageFlow is free. Booking links help keep it that way. Always verify travel info before booking.
+    </footer>
+
+  </div>
+
+  <!-- Custom Confirmation Dialog -->
+  <div class="custom-dialog-overlay" id="custom-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-desc">
+    <div class="custom-dialog">
+      <h3 id="dialog-title">Clear Trip History?</h3>
+      <p id="dialog-desc">Start a new trip? Your current conversation will be cleared.</p>
+      <div class="dialog-buttons">
+        <button class="dialog-btn cancel" id="dialog-cancel-btn">Go Back</button>
+        <button class="dialog-btn confirm" id="dialog-confirm-btn">Start Over</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // BACKEND CLOUDFLARE WORKER URL
+    // Loaded with your custom production-ready URL
+    // ==========================================
+    const WORKER_URL = 'https://voyageflow.james75x2.workers.dev/';
+
+    // Application state
+    let conversationHistory = [];
+    let isRequestActive = false;
+
+    // DOM Elements
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const charCounter = document.getElementById('char-counter');
+    const messagesTarget = document.getElementById('messages-target');
+    const emptyStateContainer = document.getElementById('empty-state-container');
+    const chatScroller = document.getElementById('chat-scroller');
+    const errorBanner = document.getElementById('error-banner');
+    const errorText = document.getElementById('error-text');
+    const newTripBtn = document.getElementById('new-trip-btn');
+    const welcomeHeading = document.getElementById('welcome-heading');
+    const welcomeSubheading = document.getElementById('welcome-subheading');
+    const suggestionsGridTarget = document.getElementById('suggestions-grid-target');
+    
+    // Custom Dialog Elements
+    const customDialogOverlay = document.getElementById('custom-dialog-overlay');
+    const dialogCancelBtn = document.getElementById('dialog-cancel-btn');
+    const dialogConfirmBtn = document.getElementById('dialog-confirm-btn');
+
+    // Cookie Utilities
+    function setCookie(name, value, days = 30) {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+    }
+
+    // Read cookie variables
+    function getCookie(name) {
+      const keyValue = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+      return keyValue ? decodeURIComponent(keyValue[2]) : null;
+    }
+
+    function deleteCookie(name) {
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Lax`;
+    }
+
+    // Initialize suggestions based on cookies
+    function initializeSuggestions() {
+      const lastDestination = getCookie('voyageflow_last_destination');
+      let chips = [];
+
+      if (lastDestination) {
+        welcomeHeading.textContent = `Back to ${lastDestination}?`;
+        welcomeSubheading.textContent = `Welcome back! Let's resume your adventure planning for ${lastDestination} or start somewhere completely new.`;
+        
+        chips = [
+          { text: `Build a complete itinerary for ${lastDestination} 🗺️`, prompt: `Build a detailed day-by-day itinerary for a trip to ${lastDestination}.` },
+          { text: `Find budget vs luxury hotels in ${lastDestination} 🏨`, prompt: `Compare the best budget, boutique, and luxury hotel options available in ${lastDestination}.` },
+          { text: `What is the visa policy for ${lastDestination}? 🛡️`, prompt: `What are the visa requirements, entry regulations, and health advisories for visiting ${lastDestination}?` },
+          { text: `Plan a trip somewhere else 🌍`, prompt: `Reset context. I want to plan a brand-new trip to somewhere else!` }
+        ];
+      } else {
+        welcomeHeading.textContent = "Where to next?";
+        welcomeSubheading.textContent = "Your AI travel expert — free, instant, no sign up required. Let's design your perfect journey together.";
+        
+        chips = [
+          { text: "Plan a week in Bali 🌴", prompt: "Plan a week in Bali 🌴" },
+          { text: "Cheapest flights from Singapore 🛫", prompt: "What are the cheapest flights from Singapore? 🛫" },
+          { text: "Best European cities in December ❄️", prompt: "Recommend the best European cities to visit in December ❄️" },
+          { text: "Family beach destinations 🏖️", prompt: "Suggest some family-friendly beach destinations 🏖️" }
+        ];
+      }
+
+      suggestionsGridTarget.innerHTML = '';
+      chips.forEach(chip => {
+        const btn = document.createElement('button');
+        btn.className = 'suggestion-chip';
+        btn.setAttribute('data-prompt', chip.prompt);
+        btn.innerHTML = `
+          <span>${chip.text}</span>
+          <span>➔</span>
+        `;
+        
+        btn.addEventListener('click', () => {
+          let userPrompt = btn.getAttribute('data-prompt');
+          if (userPrompt.includes("Reset context")) {
+            deleteCookie('voyageflow_last_destination');
+            initializeSuggestions();
+            return;
+          }
+          chatInput.value = userPrompt;
+          chatInput.dispatchEvent(new Event('input'));
+          handleFormSubmit();
+        });
+
+        suggestionsGridTarget.appendChild(btn);
+      });
+    }
+
+    // High-performance clean value extractor for AI generated affiliate codes
+    function parseAffiliateTag(tagStr) {
+      const getParam = (param) => {
+        // Safe match regex supporting single quotes, double quotes, or missing quotes around parameters
+        const regex = new RegExp(`${param}\\s*=\\s*(?:['"]([^'"]*?)['"]|([^'"\\s\\]]+))`, 'i');
+        const match = tagStr.match(regex);
+        return match ? (match[1] || match[2] || '').trim() : null;
+      };
+      
+      return {
+        destination: getParam('destination') || 'everywhere',
+        origin: getParam('origin') || 'Singapore',
+        cheapFlight: getParam('cheap_flight'),
+        premiumFlight: getParam('premium_flight'),
+        cheapCarrier: getParam('cheap_carrier') || 'Budget',
+        premiumCarrier: getParam('premium_carrier') || 'Legacy',
+        cheapHotel: getParam('cheap_hotel'),
+        luxuryHotel: getParam('luxury_hotel')
+      };
+    }
+
+    // Build the Affiliate card with Kiwi.com and full parameterization
+    function createAffiliateCard(data) {
+      const { destination, origin, cheapFlight, premiumFlight, cheapCarrier, premiumCarrier, cheapHotel, luxuryHotel } = data;
+      
+      const destEncoded = encodeURIComponent(destination || 'everywhere');
+      const origEncoded = encodeURIComponent(origin || 'Singapore');
+
+      // Routing logic: Kiwi.com handles names easily
+      const isBroadDestination = (dest) => {
+        const broadKeywords = ['anywhere', 'everywhere', 'southeast asia', 'europe', 'asia', 'south america', 'africa', 'caribbean'];
+        const clean = dest.toLowerCase().trim();
+        return broadKeywords.some(keyword => clean.includes(keyword)) || clean === '';
+      };
+
+      // PLUG IN TRAVELPAYOUTS PARTNER MARKER HERE TO GET COMMISSIONED ON KIWI:
+      const KIWI_MARKER = 'voyageflow'; 
+      let flightUrl;
+
+      if (isBroadDestination(destination)) {
+        flightUrl = `https://www.kiwi.com/en/search/results/${origEncoded}/everywhere?marker=${KIWI_MARKER}&utm_source=voyageflow&utm_medium=chat`;
+      } else {
+        flightUrl = `https://www.kiwi.com/en/search/results/${origEncoded}/${destEncoded}?marker=${KIWI_MARKER}&utm_source=voyageflow&utm_medium=chat`;
+      }
+      
+      if (destination && destination.toLowerCase() !== 'everywhere' && destination.toLowerCase() !== 'anywhere') {
+        setCookie('voyageflow_last_destination', destination);
+      }
+
+      const BOOKING_AID = '800000';                 
+      const VIATOR_PARTNER_ID = 'voyageflow';         
+      const WORLD_NOMADS_AFFILIATE_ID = 'voyageflow'; 
+
+      const hotelUrl = `https://www.booking.com/search.html?ss=${destEncoded}&aid=${BOOKING_AID}&utm_source=voyageflow&utm_medium=chat`;
+      const tourUrl = `https://www.viator.com/search/${destEncoded}?subBrandId=${VIATOR_PARTNER_ID}&utm_source=voyageflow&utm_medium=chat`;
+      const insuranceUrl = `https://www.worldnomads.com/travel-insurance/get-a-quote?affiliate=${WORLD_NOMADS_AFFILIATE_ID}&utm_source=voyageflow&utm_medium=chat`;
+
+      let priceComparisonBlock = '';
+      if (cheapFlight || cheapHotel) {
+        priceComparisonBlock = `<div class="price-compare-hub">`;
+        
+        if (cheapFlight) {
+          priceComparisonBlock += `
+            <div class="compare-row">
+              <span class="compare-label">✈️ Flights (est. return)</span>
+              <div class="compare-options">
+                <div class="compare-option">
+                  <span class="compare-price">$${cheapFlight}</span>
+                  <span class="compare-name">${cheapCarrier || 'Budget'}</span>
+                </div>
+                <div class="compare-option">
+                  <span class="compare-price premium">$${premiumFlight || Math.round(cheapFlight * 2.5)}</span>
+                  <span class="compare-name">${premiumCarrier || 'Premium'}</span>
+                </div>
+              </div>
+            </div>`;
+        }
+
+        if (cheapHotel) {
+          priceComparisonBlock += `
+            <div class="compare-row">
+              <span class="compare-label">🏨 Hotels (est. nightly)</span>
+              <div class="compare-options">
+                <div class="compare-option">
+                  <span class="compare-price">$${cheapHotel}</span>
+                  <span class="compare-name">Boutique/Budget</span>
+                </div>
+                <div class="compare-option">
+                  <span class="compare-price premium">$${luxuryHotel || Math.round(cheapHotel * 4)}</span>
+                  <span class="compare-name">Luxury/5-Star</span>
+                </div>
+              </div>
+            </div>`;
+        }
+
+        priceComparisonBlock += `</div>`;
+      }
+
+      return `
+        <div class="affiliate-card">
+          <div class="affiliate-title">
+            <svg style="width:20px;height:20px;stroke:var(--primary-accent);stroke-width:2;fill:none;" viewBox="0 0 24 24">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span>🔗 Live Booking & Price Summary</span>
+          </div>
+          
+          ${priceComparisonBlock}
+
+          <div class="affiliate-grid">
+            <a href="${flightUrl}" target="_blank" rel="noopener noreferrer" class="affiliate-btn">
+              <span>✈️ Compare Flights →</span>
+            </a>
+            <a href="${hotelUrl}" target="_blank" rel="noopener noreferrer" class="affiliate-btn">
+              <span>🏨 Book Hotels →</span>
+            </a>
+            <a href="${tourUrl}" target="_blank" rel="noopener noreferrer" class="affiliate-btn">
+              <span>🎟️ Book Experiences →</span>
+            </a>
+            <a href="${insuranceUrl}" target="_blank" rel="noopener noreferrer" class="affiliate-btn">
+              <span>🛡️ Protect Trip →</span>
+            </a>
+          </div>
+          <div class="affiliate-disclaimer">Booking links support free access to VoyageFlow</div>
+        </div>
+      `;
+    }
+
+    const placeholders = [
+      "Ask me anything about your next trip...",
+      "Where in the world do you want to go?",
+      "Tell me your dream destination...",
+      "What kind of traveller are you?",
+      "Need a visa? I can check that for you..."
+    ];
+    let placeholderIndex = 0;
+
+    setInterval(() => {
+      placeholderIndex = (placeholderIndex + 1) % placeholders.length;
+      chatInput.placeholder = placeholders[placeholderIndex];
+    }, 3000);
+
+    chatInput.addEventListener('input', () => {
+      const len = chatInput.value.length;
+      charCounter.textContent = `${len}/4000`;
+      sendBtn.disabled = len === 0 || isRequestActive;
+
+      chatInput.style.height = '24px';
+      const scrollHeight = chatInput.scrollHeight;
+      chatInput.style.height = `${Math.min(scrollHeight - 4, 120)}px`;
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (chatInput.value.trim().length > 0 && !isRequestActive) {
+          handleFormSubmit();
+        }
+      }
+    });
+
+    newTripBtn.addEventListener('click', () => {
+      if (conversationHistory.length === 0) return; 
+      customDialogOverlay.style.display = 'flex';
+    });
+
+    dialogCancelBtn.addEventListener('click', () => {
+      customDialogOverlay.style.display = 'none';
+    });
+
+    dialogConfirmBtn.addEventListener('click', () => {
+      resetApplicationState();
+      customDialogOverlay.style.display = 'none';
+    });
+
+    document.getElementById('error-close-btn').addEventListener('click', () => {
+      errorBanner.style.display = 'none';
+    });
+
+    function resetApplicationState() {
+      conversationHistory = [];
+      messagesTarget.innerHTML = '';
+      emptyStateContainer.style.display = 'flex';
+      chatInput.value = '';
+      chatInput.dispatchEvent(new Event('input'));
+      errorBanner.style.display = 'none';
+      initializeSuggestions();
+    }
+
+    function scrollToBottom() {
+      chatScroller.scrollTop = chatScroller.scrollHeight;
+    }
+
+    function showError(message) {
+      errorText.textContent = message;
+      errorBanner.style.display = 'flex';
+      scrollToBottom();
+      setTimeout(() => {
+        errorBanner.style.display = 'none';
+      }, 6000);
+    }
+
+    async function handleFormSubmit() {
+      const userText = chatInput.value.trim();
+      if (!userText || isRequestActive) return;
+
+      if (conversationHistory.length === 0) {
+        emptyStateContainer.style.display = 'none';
+      }
+
+      appendMessageBubble('user', userText);
+      conversationHistory.push({
+        role: 'user',
+        parts: [{ text: userText }]
+      });
+
+      chatInput.value = '';
+      chatInput.style.height = '24px';
+      chatInput.dispatchEvent(new Event('input'));
+
+      const loaderId = appendTypingIndicator();
+      scrollToBottom();
+
+      isRequestActive = true;
+      sendBtn.disabled = true;
+
+      const userProfile = {
+        lastDestination: getCookie('voyageflow_last_destination') || ''
+      };
+
+      try {
+        if (WORKER_URL === 'YOUR_CLOUDFLARE_WORKER_URL_HERE') {
+          throw new Error('Please configure your Cloudflare Worker URL at the top of the frontend script inside index.html');
+        }
+
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messages: conversationHistory,
+            userProfile: userProfile
+          })
+        });
+
+        removeTypingIndicator(loaderId);
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            showError("VoyageFlow is busy — please wait a moment and try again");
+          } else if (response.status === 401) {
+            showError("Backend Authorization key error or invalid API configuration");
+          } else {
+            showError("Something went wrong — please try again");
+          }
+          return;
+        }
+
+        const data = await response.json();
+        const rawModelReply = data.reply;
+
+        if (!rawModelReply) {
+          showError("No response received — please try again");
+          return;
+        }
+
+        if (data.meta) {
+          console.info('[VoyageFlow Router Match]', data.meta);
+        }
+
+        appendMessageBubble('model', rawModelReply);
+        conversationHistory.push({
+          role: 'model',
+          parts: [{ text: rawModelReply }]
+        });
+
+      } catch (err) {
+        removeTypingIndicator(loaderId);
+        if (err.message.includes('Failed to fetch')) {
+          showError("Connection issue — please check your internet or your Cloudflare Worker URL deployment");
+        } else {
+          showError(err.message || "An unknown system anomaly occurred");
+        }
+      } finally {
+        isRequestActive = false;
+        sendBtn.disabled = false;
+        scrollToBottom();
+      }
+    }
+
+    function appendMessageBubble(role, rawContent) {
+      const row = document.createElement('div');
+      row.className = `chat-row ${role}`;
+
+      if (role === 'model') {
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar-icon';
+        avatar.innerHTML = `
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M16.2 7.8l-2 6.2-6.2 2 2-6.2z"/>
+          </svg>`;
+        row.appendChild(avatar);
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+
+      if (role === 'model') {
+        const tagRegex = /\[AFFILIATE_LINKS:[^\]]*\]/gi;
+        const foundTags = rawContent.match(tagRegex);
+        
+        let processedContent = rawContent;
+        let affiliateMatch = null;
+
+        if (foundTags && foundTags.length > 0) {
+          const lastTag = foundTags[foundTags.length - 1];
+          // Use our high-performance parser to isolate parameters securely
+          affiliateMatch = parseAffiliateTag(lastTag);
+        } else {
+          const textLower = rawContent.toLowerCase();
+          const commonCities = ['bali', 'phuket', 'bangkok', 'tokyo', 'london', 'paris', 'kuala lumpur', 'singapore', 'manila', 'jakarta', 'hanoi', 'seoul', 'taipei', 'sydney', 'melbourne', 'dubai'];
+          let matchedCity = '';
+          for (const city of commonCities) {
+            if (textLower.includes(city)) {
+              matchedCity = city.charAt(0).toUpperCase() + city.slice(1);
+              break;
+            }
+          }
+          if (matchedCity) {
+            affiliateMatch = { destination: matchedCity, origin: 'Singapore' };
+          }
+        }
+
+        processedContent = processedContent.replace(tagRegex, '');
+        bubble.innerHTML = renderMarkdown(processedContent);
+
+        if (affiliateMatch) {
+          const cardHtml = createAffiliateCard(affiliateMatch);
+          const cardContainer = document.createElement('div');
+          cardContainer.innerHTML = cardHtml;
+          bubble.appendChild(cardContainer.firstElementChild);
+        }
+
+      } else {
+        const p = document.createElement('p');
+        p.textContent = rawContent;
+        bubble.appendChild(p);
+      }
+
+      row.appendChild(bubble);
+      messagesTarget.appendChild(row);
+      scrollToBottom();
+    }
+
+    function appendTypingIndicator() {
+      const loaderId = 'loader-' + Date.now();
+      const row = document.createElement('div');
+      row.className = 'chat-row model';
+      row.id = loaderId;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar-icon';
+      avatar.innerHTML = `
+        <svg viewBox="0 0 24 24" style="width:20px;height:20px;">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M16.2 7.8l-2 6.2-6.2 2 2-6.2z"/>
+        </svg>`;
+      
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = `
+        <div class="typing-indicator" aria-label="VoyageFlow is planning...">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesTarget.appendChild(row);
+      return loaderId;
+    }
+
+    function removeTypingIndicator(id) {
+      const element = document.getElementById(id);
+      if (element) { element.remove(); }
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      html = html.replace(/```([\s\S]+?)```/g, '<pre><code>$1</code></pre>');
+      html = html.replace(/`([^`\n]+?)`/g, '<code>$1</code>');
+
+      const lines = html.split('\n');
+      let inTable = false;
+      let tableHtml = '';
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('|') && line.endsWith('|')) {
+          if (!inTable) {
+            inTable = true;
+            tableHtml += '<div class="table-container"><table>';
+          }
+          if (line.match(/^\|[\s-:\\|]+$/)) continue;
+          const cells = line.split('|').slice(1, -1).map(c => c.trim());
+          const isHeader = i === 0 || (lines[i-1] && lines[i-1].includes('|') && lines[i+1] && lines[i+1].match(/^\|[\s-:\\|]+$/));
+          tableHtml += '<tr>' + cells.map(c => isHeader ? `<th>${c}</th>` : `<td>${c}</td>`).join('') + '</tr>';
+        } else {
+          if (inTable) {
+            inTable = false;
+            tableHtml += '</table></div>';
+            lines[i] = tableHtml + '\n' + lines[i];
+            tableHtml = '';
+          }
+        }
+      }
+      if (inTable) {
+        tableHtml += '</table></div>';
+        lines.push(tableHtml);
+      }
+      html = lines.join('\n');
+
+      html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+      html = html.replace(/^---$/gm, '<hr>');
+      html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+      html = html.replace(/^\s*[-*]\s+(.*?)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1<\/ul>');
+      html = html.replace(/<\/ul>\s*<ul>/g, '');
+      html = html.replace(/^\s*\d+\.\s+(.*?)$/gm, '<li class="num-item">$1</li>');
+      html = html.replace(/((?:<li class="num-item">.*?<\/li>\s*)+)/gs, '<ol>$1<\/ol>');
+      html = html.replace(/class="num-item"/g, '');
+      html = html.replace(/<\/ol>\s*<ol>/g, '');
+
+      const paragraphs = html.split(/\n{2,}/);
+      html = paragraphs.map(p => {
+        const trimmed = p.trim();
+        if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<pre') || trimmed.startsWith('<div') || trimmed.startsWith('<hr')) {
+          return trimmed;
+        }
+        return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+      }).join('');
+
+      return html;
+    }
+
+    window.onload = function() {
+      initializeSuggestions();
+    }
+  </script>
+</body>
+</html>
