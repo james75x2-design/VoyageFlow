@@ -1,7 +1,10 @@
 // DEPLOYMENT STEPS:
-// 1. Paste this updated code into your Cloudflare Worker.
-// 2. Click "Save and deploy".
-// 3. Ensure your GROQ_API_KEY is configured in your Worker settings.
+// 1. Go to https://workers.cloudflare.com and create a free account
+// 2. Create a new Worker and paste this code
+// 3. Go to Settings > Variables > Add variable:
+//    Name: GROQ_API_KEY  Value: your-groq-api-key
+// 4. Save and deploy — Cloudflare gives you a free .workers.dev URL
+// 5. Copy that URL and paste it into index.html as WORKER_URL
 
 const DEFAULT_MAX_COMPLETION_TOKENS = 2048;
 const DEFAULT_TEMPERATURE = 0.7;
@@ -85,7 +88,7 @@ export default {
     } catch (err) {
       if (ENABLE_DEBUG_LOGS) console.error('[FATAL WORKER ERROR]:', err);
       return new Response(
-        JSON.stringify({ error: err.message || 'An internal system error occurred inside the TripMind backend.' }),
+        JSON.stringify({ error: err.message || 'An internal system error occurred inside the VoyageFlow backend.' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
@@ -109,7 +112,7 @@ function buildSystemPrompt(userProfile) {
 - Naturally suggest ideas extending this trip or comparing options!`;
   }
 
-  return `You are TripMind, a world-class AI travel agent and destination expert available to everyone for free. You serve all traveller types — budget backpackers, families, couples, luxury travellers, solo adventurers, and business professionals.
+  return `You are VoyageFlow, a world-class AI travel agent and destination expert available to everyone for free. You serve all traveller types — budget backpackers, families, couples, luxury travellers, solo adventurers, and business professionals.
 
 Your job is to help users:
 1. Plan complete trips — flights, hotels, itineraries, budgets, packing lists, visa requirements, best travel times.
@@ -246,7 +249,7 @@ async function generateReplyWithFallback(messages, userProfile, apiKey) {
   const candidates = getChatModelCandidates(discoveredModels);
   
   if (ENABLE_DEBUG_LOGS) {
-    console.log('[TripMind Routing]: Found candidates:', candidates);
+    console.log('[VoyageFlow Routing]: Found candidates:', candidates);
   }
 
   let attempt = 0;
@@ -262,7 +265,7 @@ async function generateReplyWithFallback(messages, userProfile, apiKey) {
     attemptedModels.push(model);
     
     if (ENABLE_DEBUG_LOGS) {
-      console.log(`[TripMind Attempt #${attempt}]: Requesting chat completion from model: ${model}`);
+      console.log(`[VoyageFlow Attempt #${attempt}]: Requesting chat completion from model: ${model}`);
     }
 
     try {
@@ -285,7 +288,7 @@ async function generateReplyWithFallback(messages, userProfile, apiKey) {
 
       const errorDetail = await parseErrorBody(response);
       if (ENABLE_DEBUG_LOGS) {
-        console.warn(`[TripMind Failure Model: ${model} | HTTP Status: ${response.status}]:`, errorDetail);
+        console.warn(`[VoyageFlow Failure Model: ${model} | HTTP Status: ${response.status}]:`, errorDetail);
       }
 
       if (shouldRetryWithFallback(response.status, errorDetail)) {
