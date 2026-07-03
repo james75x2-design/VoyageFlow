@@ -15,7 +15,7 @@ No sign-up. No API key required from the user. Just start planning.
 
 ## 🚀 Live Demo
 
-👉 **[Try VoyageFlow Live](https://your-live-link-here)**
+👉 **[Try VoyageFlow Live](https://james75x2-design.github.io/VoyageFlow/)**
 *(update once the GitHub Pages URL is finalized)*
 
 ---
