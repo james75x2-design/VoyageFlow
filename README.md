@@ -10,6 +10,28 @@
   <img src="https://img.shields.io/badge/AI-Gemini%20%2B%20Groq-purple" alt="AI Stack">
   <img src="https://img.shields.io/badge/frontend-GitHub%20Pages-lightgrey" alt="Frontend">
 </p>
+
+---
+
+## 📚 Table of Contents
+
+- [What Is VoyageFlow?](#what-is-voyageflow)
+- [🚀 Live Demo](#-live-demo)
+- [🖼️ Screenshots](#️-screenshots)
+- [🏗️ Architecture](#️-architecture)
+- [✨ Features](#-features)
+- [🤖 AI Backend — Dual-Engine Routing](#-ai-backend--dual-engine-routing-v211)
+- [📡 API Reference](#-api-reference)
+- [🏗️ Repository Structure](#️-repository-structure)
+- [💻 Local Development](#-local-development)
+- [⚡ Deployment Guide](#-deployment-guide)
+- [🔒 Security & Privacy](#-security--privacy)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [🗺️ Roadmap](#️-roadmap)
+- [📈 Worker Version History](#-worker-version-history)
+- [👤 About](#-about)
+- [📄 License](#-license)
+
 ---
 
 ## What Is VoyageFlow?
@@ -30,11 +52,27 @@ Backend health check: https://voyageflow.james75x2.workers.dev/health
 
 ## 🖼️ Screenshots
 
-*Add these once you take them and drop them in `docs/screenshots/`.*
+### 1. Personalized Welcome (Cookie Memory)
 
-| Welcome State | Itinerary + Booking Desk |
-|---|---|
-| !Welcome | docs/screenshots/02-itinerary.png |
+VoyageFlow remembers your last destination and welcomes you back with a resumed context.
+
+<img src="https://raw.githubusercontent.com/james75x2-design/VoyageFlow/main/docs/screenshots/01-welcome-personalized.png" alt="VoyageFlow personalized welcome screen">
+
+---
+
+### 2. AI-Generated Day-by-Day Itinerary
+
+Written in a luxury travel-curator voice, structured by day, with contextual highlights before any booking data is shown.
+
+<img src="https://raw.githubusercontent.com/james75x2-design/VoyageFlow/main/docs/screenshots/02-itinerary-day-by-day.png" alt="AI-generated day-by-day itinerary">
+
+---
+
+### 3. Premium Travel Booking Desk
+
+Auto-generated from a structured JSON block emitted by the AI. Deep links are pre-filled with destination, dates, and party size — one click to search hotels, flights, experiences, or insurance.
+
+<img src="https://raw.githubusercontent.com/james75x2-design/VoyageFlow/main/docs/screenshots/03-booking-desk-prefilled.png" alt="Premium Travel Booking Desk with pre-filled links">
 
 ---
 
@@ -120,6 +158,77 @@ Fallback order is controlled by the `GROQ_FALLBACK_MODELS` array in `voyageflow_
 
 ---
 
+## 📡 API Reference
+
+The Cloudflare Worker exposes 2 endpoints:
+
+### `GET /health`
+
+Returns the worker's operational status. Useful for uptime monitors.
+
+```bash
+curl https://voyageflow.james75x2.workers.dev/health
+```
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "service": "voyageflow-worker",
+  "version": "2.1.1",
+  "timestamp": "2026-07-08T09:12:08.000Z"
+}
+```
+
+### `POST /`
+
+Main conversational endpoint. Accepts a `messages` array in Gemini format.
+
+```bash
+curl -X POST https://voyageflow.james75x2.workers.dev/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "parts": [{ "text": "Plan a 5-day trip to Tokyo for 2 adults in December." }]
+      }
+    ]
+  }'
+```
+
+Success response (200):
+
+```json
+{
+  "reply": "…luxury itinerary + embedded JSON booking block…",
+  "meta": {
+    "model": "gemini-2.5-flash",
+    "version": "2.1.1",
+    "latency_ms": 842
+  }
+}
+```
+
+Error responses:
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed payload (missing/invalid messages array) |
+| `404` | Unknown path |
+| `405` | Wrong HTTP method |
+| `429` | Rate limited by upstream provider |
+| `502` | All AI providers failed |
+
+**Payload limits:**
+- Max 30 messages per conversation
+- Max 8,000 characters per message
+
+**CORS:** Locked to GitHub Pages + localhost origins. Update `ALLOWED_ORIGINS` in the worker if you fork.
+
+---
+
 ## 🏗️ Repository Structure
 
 ```text
@@ -129,10 +238,61 @@ VoyageFlow/
 ├── README.md                       # This file
 ├── LICENSE                         # MIT
 └── docs/
-    └── screenshots/                # (add screenshots here for the README table above)
+    └── screenshots/                # Product screenshots (welcome, itinerary, booking desk)
 ```
 
 Deployed via **GitHub Pages** from the `main` branch. Backend runs on **Cloudflare Workers** at `voyageflow.james75x2.workers.dev`.
+
+---
+
+## 💻 Local Development
+
+### Test the frontend locally
+
+The frontend is a single static HTML file. To run locally:
+
+```bash
+# Clone the repo
+git clone https://github.com/james75x2-design/VoyageFlow.git
+cd VoyageFlow
+
+# Serve with any static server (Python example)
+python -m http.server 5500
+
+# Or with VS Code Live Server extension (right-click index.html → Open with Live Server)
+```
+
+Then open `http://localhost:5500` in your browser.
+
+**Note:** The frontend expects a live Cloudflare Worker URL in the `WORKER_URL` constant near the top of the `<script>` block. Point it to your own worker for local testing.
+
+### Test the worker locally with Wrangler
+
+Install Cloudflare's official CLI:
+
+```bash
+npm install -g wrangler
+wrangler login
+```
+
+Create a minimal `wrangler.toml` at repo root:
+
+```toml
+name = "voyageflow-dev"
+main = "voyageflow_backend_worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# Use `wrangler secret put GEMINI_API_KEY` and `wrangler secret put GROQ_API_KEY` for real dev
+```
+
+Then:
+
+```bash
+wrangler dev
+```
+
+The worker runs on `http://localhost:8787` and can be tested with `curl` locally.
 
 ---
 
@@ -206,7 +366,7 @@ To earn commissions from bookings, open the frontend's `createBookingDemandCard(
 
 ## 🗺️ Roadmap
 
-- [ ] Screenshots + architecture diagram in `docs/`
+- [x] Screenshots + architecture diagram in `docs/`
 - [ ] Evaluation harness (`HARNESS.md`) for measuring itinerary quality
 - [ ] Multi-city trip planning support
 - [ ] Saved itineraries / trip history (via localStorage)
@@ -244,6 +404,8 @@ Focused on AI agent development, workflow automation, and enterprise support pla
 MIT License — Copyright (c) 2026 James Earl C. Felipe.
 
 Free to use, modify, and share with attribution.
+
+See ./LICENSE for the full text.
 
 ---
 
