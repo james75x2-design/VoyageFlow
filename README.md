@@ -78,6 +78,10 @@ Auto-generated from a structured JSON block emitted by the AI. Deep links are pr
 
 ## 🏗️ Architecture
 
+https://raw.githubusercontent.com/james75x2-design/VoyageFlow/main/docs/architecture.png
+
+**Text version (for accessibility / terminal readers):**
+
 ```text
 ┌─────────────────────┐        ┌────────────────────────────┐        ┌──────────────────┐
 │  index.html         │        │  Cloudflare Worker (v2.1.1)│        │  Google Gemini   │
@@ -93,7 +97,6 @@ Auto-generated from a structured JSON block emitted by the AI. Deep links are pr
                                └────────────────────────────┘ ─────▶ │  gpt-oss-120b →  │
                                                                      │  llama-3.3-70b   │
                                                                      └──────────────────┘
-```
 
 **Data flow**
 
