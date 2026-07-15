@@ -28,7 +28,7 @@ async function loadChunks() {
   return raw.split("\n").filter(Boolean).map(JSON.parse);
 }
 
-async function retrieve(query, topK = 5) {
+export async function retrieve(query, topK = 5) {
   const chunks = await loadChunks();
   const queryTokens = tokenize(query);
 
@@ -37,6 +37,7 @@ async function retrieve(query, topK = 5) {
       chunk_id: c.chunk_id,
       section: c.section,
       source: c.source_path,
+      text: c.text,
       score: scoreChunk(queryTokens, c.text),
       preview: c.text.slice(0, 150)
     }))
@@ -45,10 +46,11 @@ async function retrieve(query, topK = 5) {
     .slice(0, topK);
 }
 
-// CLI usage
-const query = process.argv.slice(2).join(" ");
-
-if (query) {
-  const results = await retrieve(query);
-  console.log(JSON.stringify(results, null, 2));
+// CLI usage — only runs when this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const query = process.argv.slice(2).join(" ");
+  if (query) {
+    const results = await retrieve(query);
+    console.log(JSON.stringify(results, null, 2));
+  }
 }
