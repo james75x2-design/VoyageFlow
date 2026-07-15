@@ -1,9 +1,17 @@
+import { TRAVEL_CHUNKS } from "./data/index/worker-chunks.js";
+
 /**
  * VoyageFlow Serverless Cloudflare Worker — AI Gateway Router (v2.1.1)
  * Format:    ES Module (required for env secrets access)
  * Primary:   Google Gemini API (gemini-2.5-flash)
  * Fallback:  Groq API — tries gpt-oss-120b first, then llama-3.3-70b-versatile
  *
+ *  * v2.2.0 Improvements over v2.1.1:
+ *   - RAG mode (mode: "rag") with embedded travel chunk retrieval + citations
+ *   - Retrieves top-5 chunks via keyword scoring (mirrors src/rag/retrieve.mjs)
+ *   - Enforces citation IDs against retrieved chunk set
+ *   - Preserves existing itinerary/booking flow with zero regression
+ * 
  * v2.1.1 Polish over v2.1.0:
  *   - logEvent now uses console.warn / console.error for proper Cloudflare log levels
  *   - Health endpoint tolerates trailing slash (/health and /health/)
@@ -25,7 +33,7 @@
  */
 
 // ─── Worker Metadata ──────────────────────────────────────────────────────────
-const WORKER_VERSION = "2.1.1";
+const WORKER_VERSION = "2.2.0";
 const WORKER_SERVICE = "voyageflow-worker";
 
 // ─── Groq Fallback Model Chain ────────────────────────────────────────────────
@@ -219,7 +227,149 @@ function validateMessages(messages) {
     }
   }
 }
+// ─── RAG: Retrieval + Prompt Helpers (v2.2.0) ─────────────────────────────────
+// Reuses the same keyword-scoring logic as src/rag/retrieve.mjs so local eval
+// results and production Worker results stay aligned.
 
+const RAG_TOP_K = 5;
+const RAG_FALLBACK_ANSWER =
+  "I don't have enough evidence in the current VoyageFlow travel knowledge base to answer that.";
+
+function ragTokenize(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(t => t.length > 2);
+}
+
+function ragScoreChunk(queryTokens, text) {
+  const chunkTokens = ragTokenize(text);
+  const set = new Set(chunkTokens);
+  const lower = text.toLowerCase();
+
+  let score = 0;
+  for (const token of queryTokens) {
+    if (set.has(token)) score += 2;
+    if (lower.includes(token)) score += 1;
+  }
+  return score;
+}
+
+function ragRetrieve(query, topK = RAG_TOP_K) {
+  const queryTokens = ragTokenize(query);
+  if (queryTokens.length === 0) return [];
+
+  return TRAVEL_CHUNKS
+    .map(c => ({
+      chunk_id: c.chunk_id,
+      section: c.section,
+      source_path: c.source_path,
+      text: c.text,
+      score: ragScoreChunk(queryTokens, c.text)
+    }))
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK);
+}
+
+function ragBuildContext(chunks) {
+  return chunks
+    .map(c => [
+      `<source id="${c.chunk_id}">`,
+      `section: ${c.section || "Unknown section"}`,
+      `source_path: ${c.source_path || "Unknown source"}`,
+      `retrieval_score: ${c.score ?? "unknown"}`,
+      "",
+      String(c.text || "").trim(),
+      `</source>`
+    ].join("\n"))
+    .join("\n\n");
+}
+
+function ragBuildSystemPrompt(query, chunks) {
+  const allowedIds = chunks.map(c => c.chunk_id).join(", ");
+  const context = ragBuildContext(chunks);
+  return `
+You are VoyageFlow, an AI travel concierge answering a user's factual question.
+Answer using ONLY the retrieved travel context below. Do not use outside knowledge.
+
+Rules:
+1. Use only facts found inside <source> blocks.
+2. Cite every factual sentence using exact chunk IDs in square brackets, e.g. [${chunks[0]?.chunk_id || "chunk-id"}].
+3. Allowed citation IDs: ${allowedIds}
+4. If the context does not contain enough information to answer, respond with exactly:
+   "${RAG_FALLBACK_ANSWER}"
+5. Do not invent citations or sources.
+6. Return valid JSON only. Do not include markdown fences like \`\`\`json.
+
+Return this JSON shape exactly:
+{
+  "answer_markdown": "Natural language travel answer with inline [chunk_id] citations.",
+  "citations": [
+    { "claim": "Short claim being supported.", "chunk_ids": ["chunk_id"] }
+  ],
+  "unanswered": false
+}
+
+Retrieved context:
+${context}
+
+User query:
+${query}
+`.trim();
+}
+
+function ragExtractQuery(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg?.role === "user") {
+      return msg.parts?.[0]?.text || "";
+    }
+  }
+  return "";
+}
+
+function ragParseJsonSafely(rawText) {
+  if (!rawText) return null;
+  const cleaned = String(rawText)
+    .replace(/^```json/i, "")
+    .replace(/^```/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+}
+
+function ragNormalizeAnswer(rawText, allowedChunkIds) {
+  const parsed = ragParseJsonSafely(rawText);
+  if (
+    parsed &&
+    typeof parsed.answer_markdown === "string" &&
+    Array.isArray(parsed.citations) &&
+    typeof parsed.unanswered === "boolean"
+  ) {
+    return parsed;
+  }
+
+  // Plain-text fallback: extract [chunk_id] citations from raw output.
+  const text = String(rawText || "").trim();
+  const inlineIds = [...text.matchAll(/\[([a-z0-9._-]+::\d{3})\]/gi)]
+    .map(m => m[1])
+    .filter(id => allowedChunkIds.includes(id));
+
+  return {
+    answer_markdown: text || RAG_FALLBACK_ANSWER,
+    citations: [...new Set(inlineIds)].map(id => ({
+      claim: "Extracted from plain-text model output.",
+      chunk_ids: [id]
+    })),
+    unanswered: text === RAG_FALLBACK_ANSWER || text.length === 0
+  };
+}
 // ─── Fetch With Timeout ───────────────────────────────────────────────────────
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -293,16 +443,62 @@ export default {
 
     // Parse + validate body
     let messages;
+    let mode = "chat";
     try {
       const body = await request.json();
       messages = body?.messages;
+      mode = body?.mode === "rag" ? "rag" : "chat";
       validateMessages(messages);
     } catch (err) {
       logEvent("warn", "validation_failed", { error: err.message });
       return jsonResponse({ error: `Bad request: ${err.message}` }, 400, corsHeaders);
     }
 
-    const systemPrompt = buildSystemPrompt();
+    // ── RAG mode: retrieve + build citation-enforcing prompt ────────────────
+    // If mode !== "rag", we fall through to the original itinerary/booking flow.
+    let ragChunks = [];
+    let ragAllowedIds = [];
+    let systemPrompt;
+
+    if (mode === "rag") {
+      const query = ragExtractQuery(messages);
+      if (!query) {
+        logEvent("warn", "rag_missing_query", {});
+        return jsonResponse({ error: "Missing user query for RAG mode." }, 400, corsHeaders);
+      }
+
+      ragChunks = ragRetrieve(query, RAG_TOP_K);
+      ragAllowedIds = ragChunks.map(c => c.chunk_id);
+
+      logEvent("info", "rag_retrieved", {
+        query_len: query.length,
+        chunks_count: ragChunks.length,
+        chunk_ids: ragAllowedIds
+      });
+
+      // No relevant chunks → return fallback answer WITHOUT calling LLM (fast path).
+      if (ragChunks.length === 0) {
+        return jsonResponse({
+          answer_markdown: RAG_FALLBACK_ANSWER,
+          citations: [],
+          unanswered: true,
+          meta: {
+            mode: "rag",
+            version: WORKER_VERSION,
+            model: "none",
+            chunks_used: [],
+            latency_ms: Date.now() - startTime
+          }
+        }, 200, corsHeaders);
+      }
+
+      // Replace user turn with the RAG prompt; keep the array shape Gemini/Groq expect.
+      const ragPrompt = ragBuildSystemPrompt(query, ragChunks);
+      messages = [{ role: "user", parts: [{ text: ragPrompt }] }];
+      systemPrompt = "You are a strict retrieval-grounded assistant. Follow the user's instructions exactly and return only valid JSON.";
+    } else {
+      systemPrompt = buildSystemPrompt();
+    }
 
     let rawContent = null;
     let usedModel = null;
@@ -342,10 +538,47 @@ export default {
 
     const latencyMs = Date.now() - startTime;
 
-    // ── Success ──────────────────────────────────────────────────────────────
+// ── Success ──────────────────────────────────────────────────────────────
     if (rawContent) {
-      logEvent("info", "request_succeeded", { model: usedModel, latency_ms: latencyMs });
+      logEvent("info", "request_succeeded", {
+        mode,
+        model: usedModel,
+        latency_ms: latencyMs
+      });
 
+      // RAG mode: normalize LLM output into the citation-enforced JSON shape.
+      if (mode === "rag") {
+        const normalized = ragNormalizeAnswer(rawContent, ragAllowedIds);
+
+        // Enforce that every cited chunk_id is in the retrieved set.
+        const cleanCitations = (normalized.citations || [])
+          .map(c => ({
+            claim: typeof c.claim === "string" ? c.claim : "",
+            chunk_ids: Array.isArray(c.chunk_ids)
+              ? c.chunk_ids.filter(id => ragAllowedIds.includes(id))
+              : []
+          }))
+          .filter(c => c.chunk_ids.length > 0);
+
+        return jsonResponse({
+          answer_markdown: normalized.answer_markdown || RAG_FALLBACK_ANSWER,
+          citations: cleanCitations,
+          unanswered: Boolean(normalized.unanswered) || cleanCitations.length === 0,
+          meta: {
+            mode: "rag",
+            model: usedModel,
+            version: WORKER_VERSION,
+            latency_ms: latencyMs,
+            chunks_used: ragChunks.map(c => ({
+              chunk_id: c.chunk_id,
+              section: c.section,
+              score: c.score
+            }))
+          }
+        }, 200, corsHeaders);
+      }
+
+      // Default (chat/booking) mode: unchanged response shape.
       return jsonResponse({
         reply: rawContent,
         meta: {

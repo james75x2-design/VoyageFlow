@@ -1,0 +1,9 @@
+# VoyageFlow Cloudflare Worker configuration
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "voyageflow"
+main = "voyageflow_backend_worker.js"
+compatibility_date = "2026-07-15"
+
+[observability]
+enabled = true

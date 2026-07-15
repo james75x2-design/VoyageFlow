@@ -73,11 +73,8 @@ async function callWorker(prompt, query, sourceMap) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0,
-      mode: "rag_local_eval",
-      query,
-      sources: sourceMap
+      mode: "rag",
+      messages: [{ role: "user", parts: [{ text: query }] }]
     })
   });
   if (!response.ok) {
