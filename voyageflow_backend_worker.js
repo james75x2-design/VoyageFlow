@@ -56,7 +56,10 @@ const ALLOWED_ORIGINS = [
   "https://james75x2-design.github.io",
   "http://localhost:5500",
   "http://127.0.0.1:5500",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  
+// GitHub Codespaces preview URLs — allow the specific ones you use for testing
+  "https://literate-tribble-jr544vxxxwppcrxw-8000.app.github.dev"
 ];
 
 // ─── System Prompt Template ───────────────────────────────────────────────────

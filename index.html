@@ -739,6 +739,57 @@
     .dialog-btn.confirm:hover {
       background: var(--primary-accent-hover);
     }
+/* ── Mode Toggle (Chat vs RAG) ─────────────────────────────────────── */
+    .mode-toggle {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      margin-bottom: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      width: fit-content;
+    }
+    .mode-toggle button {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .mode-toggle button:hover {
+      color: #fff;
+    }
+    .mode-toggle button.active {
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+    }
+    .sources-block {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .sources-block strong {
+      color: #fff;
+      font-weight: 500;
+      margin-right: 4px;
+    }
+    .sources-block .source-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      margin: 2px 3px 2px 0;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      font-family: ui-monospace, "SF Mono", monospace;
+      font-size: 10px;
+    }
   </style>
 </head>
 <body>
@@ -796,6 +847,12 @@
         <button class="error-close" id="error-close-btn" aria-label="Close error message">×</button>
       </div>
 
+      <!-- Mode Toggle: Chat (booking) vs RAG (Ask) -->
+      <div class="mode-toggle" id="mode-toggle" role="tablist" aria-label="Choose interaction mode">
+        <button type="button" class="active" data-mode="chat" role="tab" aria-selected="true">✈️ Plan a trip</button>
+        <button type="button" data-mode="rag" role="tab" aria-selected="false">❓ Ask VoyageFlow</button>
+      </div>
+
       <!-- User Chat Form -->
       <form id="chat-form" onsubmit="event.preventDefault(); handleFormSubmit();">
         <div class="input-bar">
@@ -840,6 +897,24 @@
 
     // Application state variables
     let conversationHistory = [];
+    let currentMode = 'chat';
+
+    // Mode toggle wiring
+    document.querySelectorAll('.mode-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentMode = btn.dataset.mode;
+        document.querySelectorAll('.mode-toggle button').forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+        });
+        const input = document.getElementById('chat-input');
+        if (input) {
+          input.placeholder = currentMode === 'rag'
+            ? 'Ask a factual question about VoyageFlow...'
+            : 'Ask me anything about your next trip...';
+        }
+      });
+    });
     let isRequestActive = false;
 
     // DOM References
@@ -1182,6 +1257,7 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            ...(currentMode === 'rag' ? { mode: 'rag' } : {}),
             messages: conversationHistory
           })
         });
@@ -1208,15 +1284,19 @@
         }
 
         const data = await response.json();
-        const rawModelReply = data.reply;
+        const rawModelReply = data.answer_markdown || data.reply;
 
         if (!rawModelReply) {
           showError("No response received — please try again");
           return;
         }
 
-        errorBanner.style.display = 'none'; 
-        appendMessageBubble('model', rawModelReply);
+        const citationIds = Array.isArray(data.citations)
+          ? [...new Set(data.citations.flatMap(c => Array.isArray(c.chunk_ids) ? c.chunk_ids : []))]
+          : [];
+
+        errorBanner.style.display = 'none';
+        appendMessageBubble('model', rawModelReply, { citationIds });
         conversationHistory.push({
           role: 'model',
           parts: [{ text: rawModelReply }]
@@ -1232,7 +1312,7 @@
       }
     }
 
-    function appendMessageBubble(role, rawContent) {
+    function appendMessageBubble(role, rawContent, meta = {}) {
       const row = document.createElement('div');
       row.className = `chat-row ${role}`;
 
@@ -1278,8 +1358,12 @@
         }
 
         if (cleanText.length > 0) {
-          bubble.innerHTML = renderMarkdown(cleanText);
-        }
+  // Strip inline [chunk_id] markers for cleaner display
+  // (they're still visible in the Sources strip below)
+  const displayText = cleanText.replace(/\s*\[([a-z0-9._-]+::\d{3})\]/gi, '');
+  bubble.innerHTML = renderMarkdown(displayText);
+}
+
 
         if (jsonPayload && jsonPayload.checkin && jsonPayload.location_value) {
           const cardHtml = createBookingDemandCard(jsonPayload);
@@ -1290,6 +1374,17 @@
         
         if (bubble.innerHTML.trim() === '') {
           bubble.innerHTML = '<p>Extraction payload generated successfully.</p>';
+        }
+
+        // RAG citations (if provided by Worker mode:rag response)
+        if (Array.isArray(meta.citationIds) && meta.citationIds.length > 0) {
+          const sources = document.createElement('div');
+          sources.className = 'sources-block';
+          const tags = meta.citationIds
+            .map(id => `<span class="source-tag">${id}</span>`)
+            .join('');
+          sources.innerHTML = `<strong>Sources:</strong>${tags}`;
+          bubble.appendChild(sources);
         }
 
       } else {
