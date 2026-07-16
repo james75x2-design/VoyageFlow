@@ -1,0 +1,16 @@
+# Wrangler build output
+dist/
+.wrangler/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Env / secrets (never commit)
+.env
+.env.local
+
+# OS / editor cruft
+.DS_Store
+*.swp
+.vscode/settings.json
