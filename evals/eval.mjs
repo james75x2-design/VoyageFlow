@@ -121,6 +121,8 @@ async function main() {
   const results = [];
 
   for (const testCase of testCases) {
+    // Rate-limit guard: pause between requests to avoid Gemini/Groq bursts
+    if (results.length > 0) await new Promise(r => setTimeout(r, 3000));
     const result = await runOne(testCase);
     results.push(result);
     printResult(result);

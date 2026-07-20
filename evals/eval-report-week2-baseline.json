@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-20T03:38:02.666Z",
+  "generated_at": "2026-07-20T03:23:28.310Z",
   "total": 15,
-  "passed": 13,
-  "failed": 2,
+  "passed": 12,
+  "failed": 3,
   "retrieval_passed": 13,
-  "answer_passed": 15,
+  "answer_passed": 14,
   "retrieval_pass_rate": 87,
-  "answer_pass_rate": 100,
-  "overall_pass_rate": 87,
+  "answer_pass_rate": 93,
+  "overall_pass_rate": 80,
   "results": [
     {
       "id": "vf-eval-001",
@@ -33,14 +33,13 @@
         "actual_citation_ids": [
           "voyageflow-overview::001",
           "booking-policies::002",
-          "voyageflow-overview::004",
-          "booking-policies::003",
-          "tokyo-spring-guide::004"
+          "tokyo-spring-guide::004",
+          "voyageflow-overview::004"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "{\n  \"answer_markdown\": \"Before booking a hotel through VoyageFlow, keep in mind that VoyageFlow does not process payments itself but hands you off to trusted booking partners [voyageflow-overview::001]. It cannot guarantee hotel availability because inventory "
+        "answer_preview": "Before booking hotels through VoyageFlow, it's important to know that VoyageFlow is an AI travel concierge that generates structured booking links for hotels but does not process payments directly; it hands users off to trusted booking partners [voyageflow-ove"
       }
     },
     {
@@ -67,14 +66,14 @@
         "actual_citation_ids": [
           "voyageflow-overview::001",
           "tokyo-spring-guide::003",
+          "tokyo-spring-guide::001",
           "tokyo-spring-guide::004",
-          "voyageflow-overview::003",
           "voyageflow-overview::002"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow is an AI travel concierge that helps travelers plan trips, discover destinations, and generate ready‑to‑book itineraries [voyageflow-overview::001]. For a spring visit to Tokyo it can produce a typical 5‑day itinerary that includes arrival and Shinj"
+        "answer_preview": "VoyageFlow is an AI travel concierge that helps travelers plan trips and generate ready-to-book itineraries [voyageflow-overview::001]. It provides destination guidance and day-by-day itineraries [voyageflow-overview::001]. For a Tokyo spring trip, VoyageFlow "
       }
     },
     {
@@ -98,12 +97,15 @@
         "pass": true,
         "expected_citation_ids": [],
         "actual_citation_ids": [
-          "voyageflow-overview::003"
+          "voyageflow-overview::001",
+          "voyageflow-overview::002",
+          "booking-policies::001",
+          "tokyo-spring-guide::004"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow can generate deep‑linked booking demand cards that include a hotel search link pre‑filled with destination, check‑in/check‑out dates and guest count; a flight search link pre‑filled with origin, destination and travel dates; and an activities/experi"
+        "answer_preview": "VoyageFlow generates structured booking links for hotels and flights [voyageflow-overview::001]. For hotels, it provides deep booking links to partner platforms such as Booking.com, Expedia, and Agoda, based on user preferences [voyageflow-overview::002]. For "
       }
     },
     {
@@ -127,12 +129,16 @@
         "pass": true,
         "expected_citation_ids": [],
         "actual_citation_ids": [
-          "voyageflow-overview::002"
+          "voyageflow-overview::002",
+          "voyageflow-overview::001",
+          "booking-policies::001",
+          "booking-policies::003",
+          "tokyo-spring-guide::004"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow supports two primary booking flows: **Hotels** and **Flights** [voyageflow-overview::002]. For hotels, VoyageFlow surfaces hotel recommendations based on user preferences and generates deep booking links to partner platforms [voyageflow-overview::00"
+        "answer_preview": "{\n  \"answer_markdown\": \"VoyageFlow supports two primary booking flows for hotels and flights [voyageflow-overview::002]. For hotels, VoyageFlow surfaces recommendations based on user preferences and generates deep booking links to partner platforms such as Boo"
       }
     },
     {
@@ -158,12 +164,13 @@
         "expected_citation_ids": [],
         "actual_citation_ids": [
           "booking-policies::003",
-          "voyageflow-overview::004"
+          "voyageflow-overview::004",
+          "booking-policies::002"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow strongly encourages users to verify several details before finalizing any booking, including the current price on the partner platform, the cancellation policy and refund window, the room type, bed configuration and amenities, the total cost with ta"
+        "answer_preview": "VoyageFlow strongly encourages users to verify several details before finalizing any booking [booking-policies::003]. This includes the current price on the partner platform, as VoyageFlow does not display live prices [booking-policies::003]. Users should also"
       }
     },
     {
@@ -217,7 +224,7 @@
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow **cannot** guarantee hotel availability [booking-policies::002] or hotel prices [booking-policies::002] as inventory changes minute to minute on partner platforms and rates fluctuate based on demand, promotions, and partner platform dynamics."
+        "answer_preview": "VoyageFlow cannot guarantee hotel availability at the time of booking because inventory changes minute to minute on partner platforms [booking-policies::002]. Similarly, VoyageFlow cannot guarantee hotel prices, as rates fluctuate based on demand, promotions, "
       }
     },
     {
@@ -273,7 +280,7 @@
     {
       "id": "vf-eval-010",
       "query": "Give me medical advice for traveling while sick.",
-      "pass": true,
+      "pass": false,
       "retrieval": {
         "pass": true,
         "expected_chunk_ids": [
@@ -288,15 +295,13 @@
         ]
       },
       "answer": {
-        "pass": true,
+        "pass": false,
         "expected_citation_ids": [],
-        "actual_citation_ids": [
-          "booking-policies::004"
-        ],
+        "actual_citation_ids": [],
         "unanswered_expected": false,
-        "unanswered_actual": false,
+        "unanswered_actual": true,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow does not provide medical advice for travel — users should consult a licensed physician or travel medicine clinic [booking-policies::004]."
+        "answer_preview": "I don't have enough evidence in the current VoyageFlow travel knowledge base to answer that."
       }
     },
     {
@@ -320,14 +325,13 @@
         "pass": true,
         "expected_citation_ids": [],
         "actual_citation_ids": [
-          "tokyo-spring-guide::004",
-          "voyageflow-overview::004",
-          "booking-policies::001"
+          "booking-policies::001",
+          "voyageflow-overview::001"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow generates booking links with date-specific considerations pre-filled [tokyo-spring-guide::004], but it does not directly handle bookings. It recommends verifying travel information, including current pricing and availability on the partner platform "
+        "answer_preview": "Yes, VoyageFlow can provide you with booking links for hotels and other accommodations, but the actual reservation and payment are completed on the partner platform, not directly through VoyageFlow. [booking-policies::001][voyageflow-overview::001]"
       }
     },
     {
@@ -352,13 +356,13 @@
         "pass": true,
         "expected_citation_ids": [],
         "actual_citation_ids": [
-          "booking-policies::003",
-          "booking-policies::002"
+          "booking-policies::002",
+          "booking-policies::003"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "Before finalizing your reservation, VoyageFlow strongly encourages users to verify the following: current price on the partner platform [booking-policies::003], cancellation policy and refund window [booking-policies::003], room type, bed configuration, and in"
+        "answer_preview": "Before finalizing any reservation, users must confirm all pricing, availability, and policies directly with the booking partner [booking-policies::002]. VoyageFlow encourages users to verify the current price on the partner platform, as VoyageFlow does not dis"
       }
     },
     {
@@ -390,7 +394,7 @@
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "Spring in Tokyo runs from March through May, featuring cherry blossom (sakura) viewing, mild temperatures of 10–20°C (50–68°F), and a packed cultural calendar [tokyo-spring-guide::001]. Peak sakura typically falls between late March and early April, with top h"
+        "answer_preview": "Spring in Tokyo (Japan's capital) runs from March through May, featuring cherry blossom (sakura) viewing, mild temperatures of 10–20 °C (50–68 °F), and a busy cultural calendar. [tokyo-spring-guide::001]\n\nPeak sakura typically occurs late March to early April,"
       }
     },
     {
@@ -414,12 +418,13 @@
         "pass": true,
         "expected_citation_ids": [],
         "actual_citation_ids": [
-          "booking-policies::002"
+          "booking-policies::002",
+          "booking-policies::004"
         ],
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "VoyageFlow does not guarantee hotel availability at the time of booking [booking-policies::002], hotel prices [booking-policies::002], flight availability or fares [booking-policies::002], cancellation or refund outcomes [booking-policies::002], or visa approv"
+        "answer_preview": "VoyageFlow does not guarantee [booking-policies::002] hotel availability at the time of booking, hotel prices, flight availability or fares, or cancellation or refund outcomes. Additionally, VoyageFlow does not provide [booking-policies::004] medical advice fo"
       }
     },
     {
@@ -449,7 +454,7 @@
         "unanswered_expected": false,
         "unanswered_actual": false,
         "validation_valid": true,
-        "answer_preview": "For cherry blossom trips, it's recommended to book accommodations 3–6 months in advance for late March and early April travel [tokyo-spring-guide::001]. Additionally, popular ryokan require booking 4–6 months in advance [tokyo-spring-guide::004], and flights f"
+        "answer_preview": "For cherry blossom trips, it is recommended to plan ahead, as [tokyo-spring-guide::001] VoyageFlow recommends booking accommodations 3–6 months in advance for late March and early April travel. Additionally, [tokyo-spring-guide::004] popular ryokan require boo"
       }
     }
   ]
