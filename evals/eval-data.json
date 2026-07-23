@@ -2,35 +2,48 @@
   {
     "id": "vf-eval-001",
     "query": "What should I know before booking hotels through VoyageFlow?",
-    "expected_chunk_ids": ["booking-policies::002", "voyageflow-overview::004"],
+    "expected_chunk_ids": [
+      "booking-policies::002",
+      "voyageflow-overview::004"
+    ],
     "expected_citation_ids": [],
     "expect_unanswered": false
   },
   {
     "id": "vf-eval-002",
     "query": "How does VoyageFlow help plan a trip to Tokyo in spring?",
-    "expected_chunk_ids": ["tokyo-spring-guide::001", "tokyo-spring-guide::003"],
+    "expected_chunk_ids": [
+      "tokyo-spring-guide::001",
+      "tokyo-spring-guide::003"
+    ],
     "expected_citation_ids": [],
     "expect_unanswered": false
   },
   {
     "id": "vf-eval-003",
     "query": "What booking links can VoyageFlow generate?",
-    "expected_chunk_ids": ["voyageflow-overview::002"],
+    "expected_chunk_ids": [
+      "voyageflow-overview::002"
+    ],
     "expected_citation_ids": [],
     "expect_unanswered": false
   },
   {
     "id": "vf-eval-004",
     "query": "How does VoyageFlow handle hotels and flights?",
-    "expected_chunk_ids": ["voyageflow-overview::002"],
+    "expected_chunk_ids": [
+      "voyageflow-overview::002"
+    ],
     "expected_citation_ids": [],
     "expect_unanswered": false
   },
   {
     "id": "vf-eval-005",
     "query": "What does VoyageFlow say about verifying travel information before booking?",
-    "expected_chunk_ids": ["booking-policies::003", "voyageflow-overview::004"],
+    "expected_chunk_ids": [
+      "booking-policies::003",
+      "voyageflow-overview::004"
+    ],
     "expected_citation_ids": [],
     "expect_unanswered": false
   },
@@ -44,7 +57,9 @@
   {
     "id": "vf-eval-007",
     "query": "Can VoyageFlow guarantee hotel availability and prices?",
-    "expected_chunk_ids": ["booking-policies::002"],
+    "expected_chunk_ids": [
+      "booking-policies::002"
+    ],
     "expected_citation_ids": [],
     "expect_unanswered": false
   },
@@ -65,8 +80,62 @@
   {
     "id": "vf-eval-010",
     "query": "Give me medical advice for traveling while sick.",
-    "expected_chunk_ids": [],
+    "expected_chunk_ids": [
+      "booking-policies::004"
+    ],
     "expected_citation_ids": [],
-    "expect_unanswered": true
+    "expect_unanswered": false,
+    "note": "KB has a scoped refusal chunk for medical advice \u2014 expects grounded citation, not blanket refusal"
+  },
+  {
+    "id": "vf-eval-011",
+    "query": "Can I book a place to stay through your service?",
+    "note": "Semantic: 'place to stay' vs KB's 'hotels' \u2014 tests vector rescue",
+    "expected_chunk_ids": [
+      "voyageflow-overview::002"
+    ],
+    "expected_citation_ids": [],
+    "expect_unanswered": false
+  },
+  {
+    "id": "vf-eval-012",
+    "query": "What's the process before I finalize my reservation?",
+    "note": "Semantic: 'finalize reservation' vs KB's 'verify before booking'",
+    "expected_chunk_ids": [
+      "booking-policies::003",
+      "voyageflow-overview::004"
+    ],
+    "expected_citation_ids": [],
+    "expect_unanswered": false
+  },
+  {
+    "id": "vf-eval-013",
+    "query": "Tell me about spring travel to Japan's capital",
+    "note": "Entity substitution: 'Japan's capital' vs 'Tokyo'",
+    "expected_chunk_ids": [
+      "tokyo-spring-guide::001"
+    ],
+    "expected_citation_ids": [],
+    "expect_unanswered": false
+  },
+  {
+    "id": "vf-eval-014",
+    "query": "What promises does VoyageFlow NOT make?",
+    "note": "Synonym: 'promises' vs KB's 'guarantee'",
+    "expected_chunk_ids": [
+      "booking-policies::002"
+    ],
+    "expected_citation_ids": [],
+    "expect_unanswered": false
+  },
+  {
+    "id": "vf-eval-015",
+    "query": "How far ahead should I plan for cherry blossom trips?",
+    "note": "Multi-hop: cherry blossom -> Tokyo -> booking timeline",
+    "expected_chunk_ids": [
+      "tokyo-spring-guide::004"
+    ],
+    "expected_citation_ids": [],
+    "expect_unanswered": false
   }
 ]

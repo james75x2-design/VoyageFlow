@@ -1,4 +1,4 @@
-import { TRAVEL_CHUNKS } from "./data/index/worker-chunks.js";
+import { TRAVEL_CHUNKS, EMBEDDING_MODEL, EMBEDDING_DIMS } from "./data/index/worker-chunks.js";
 
 /**
  * VoyageFlow Serverless Cloudflare Worker — AI Gateway Router (v2.1.1)
@@ -6,7 +6,13 @@ import { TRAVEL_CHUNKS } from "./data/index/worker-chunks.js";
  * Primary:   Google Gemini API (gemini-2.5-flash)
  * Fallback:  Groq API — tries gpt-oss-120b first, then llama-3.3-70b-versatile
  *
- *  * v2.2.0 Improvements over v2.1.1:
+ *  * v2.3.0 Improvements over v2.2.0:
+ *   - Hybrid retrieval: keyword scoring + vector similarity with score fusion
+ *   - Cloudflare Workers AI embeddings (@cf/baai/bge-small-en-v1.5, 384 dims)
+ *   - Graceful fallback to keyword-only if embedding call fails
+ *   - Weighted score fusion (0.5 keyword + 0.5 vector, tunable)
+ *
+ * v2.2.0 Improvements over v2.1.1:
  *   - RAG mode (mode: "rag") with embedded travel chunk retrieval + citations
  *   - Retrieves top-5 chunks via keyword scoring (mirrors src/rag/retrieve.mjs)
  *   - Enforces citation IDs against retrieved chunk set
@@ -33,7 +39,7 @@ import { TRAVEL_CHUNKS } from "./data/index/worker-chunks.js";
  */
 
 // ─── Worker Metadata ──────────────────────────────────────────────────────────
-const WORKER_VERSION = "2.2.0";
+const WORKER_VERSION = "2.3.0";
 const WORKER_SERVICE = "voyageflow-worker";
 
 // ─── Groq Fallback Model Chain ────────────────────────────────────────────────
@@ -230,6 +236,100 @@ function validateMessages(messages) {
     }
   }
 }
+// ─── RAG: Vector Similarity Helpers (v2.3.0) ──────────────────────────────────
+// Week 3 additions: computes cosine similarity between query embedding and
+// pre-computed chunk embeddings, then fuses with keyword score.
+
+const RAG_KEYWORD_WEIGHT = 0.5;
+const RAG_VECTOR_WEIGHT = 0.5;
+
+function cosineSimilarity(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return 0;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+async function embedQuery(env, query) {
+  if (!env.AI) return null;
+  try {
+    const result = await env.AI.run(EMBEDDING_MODEL, { text: [query] });
+    return result?.data?.[0] || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function normalizeScores(items, scoreKey) {
+  const scores = items.map(x => x[scoreKey]);
+  const max = Math.max(...scores, 0);
+  if (max === 0) {
+    return items.map(x => ({ ...x, [`${scoreKey}_norm`]: 0 }));
+  }
+  return items.map(x => ({ ...x, [`${scoreKey}_norm`]: x[scoreKey] / max }));
+}
+
+async function ragRetrieveHybrid(env, query, topK) {
+  const queryTokens = ragTokenize(query);
+  if (queryTokens.length === 0) return [];
+
+  // Signal 1: keyword scoring across ALL chunks
+  const keywordScored = TRAVEL_CHUNKS.map(c => ({
+    chunk_id: c.chunk_id,
+    section: c.section,
+    source_path: c.source_path,
+    text: c.text,
+    embedding: c.embedding,
+    keyword_score: ragScoreChunk(queryTokens, c.text),
+    vector_score: 0
+  }));
+
+  // Signal 2: vector similarity (if AI binding is available)
+  const queryEmbedding = await embedQuery(env, query);
+  if (queryEmbedding) {
+    for (const c of keywordScored) {
+      c.vector_score = cosineSimilarity(queryEmbedding, c.embedding);
+    }
+  }
+
+  // Filter: keep chunks with keyword hits OR meaningful vector similarity
+  const VECTOR_THRESHOLD = 0.3;
+  let candidates = keywordScored.filter(c =>
+    c.keyword_score > 0 || c.vector_score >= VECTOR_THRESHOLD
+  );
+  if (candidates.length === 0) return [];
+
+  // Normalize per signal, then fuse with weighted sum
+  candidates = normalizeScores(candidates, "keyword_score");
+  candidates = normalizeScores(candidates, "vector_score");
+
+  const fused = candidates.map(c => ({
+    ...c,
+    fused_score:
+      RAG_KEYWORD_WEIGHT * c.keyword_score_norm +
+      RAG_VECTOR_WEIGHT * c.vector_score_norm
+  }));
+
+  return fused
+    .sort((a, b) => b.fused_score - a.fused_score)
+    .slice(0, topK)
+    .map(c => ({
+      chunk_id: c.chunk_id,
+      section: c.section,
+      source_path: c.source_path,
+      text: c.text,
+      score: Number(c.fused_score.toFixed(4)),
+      keyword_score: c.keyword_score,
+      vector_score: Number(c.vector_score.toFixed(4)),
+      retrieval_signal: queryEmbedding ? "hybrid" : "keyword_only"
+    }));
+}
+
 // ─── RAG: Retrieval + Prompt Helpers (v2.2.0) ─────────────────────────────────
 // Reuses the same keyword-scoring logic as src/rag/retrieve.mjs so local eval
 // results and production Worker results stay aligned.
@@ -470,13 +570,14 @@ export default {
         return jsonResponse({ error: "Missing user query for RAG mode." }, 400, corsHeaders);
       }
 
-      ragChunks = ragRetrieve(query, RAG_TOP_K);
+      ragChunks = await ragRetrieveHybrid(env, query, RAG_TOP_K);
       ragAllowedIds = ragChunks.map(c => c.chunk_id);
 
       logEvent("info", "rag_retrieved", {
         query_len: query.length,
         chunks_count: ragChunks.length,
-        chunk_ids: ragAllowedIds
+        chunk_ids: ragAllowedIds,
+        retrieval_signal: ragChunks[0]?.retrieval_signal || "none"
       });
 
       // No relevant chunks → return fallback answer WITHOUT calling LLM (fast path).

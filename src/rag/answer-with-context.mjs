@@ -256,7 +256,14 @@ export async function answerWithContext(query) {
 
   const rawWorkerResponse = await callWorker(prompt, query, sourceMap);
   const answerObj = normalizeModelOutput(rawWorkerResponse);
-  const validation = validateAnswer(answerObj, chunks);
+
+  // v2.3.0: prefer Worker's chunks_used for validation (hybrid retrieval)
+  // Falls back to local chunks if Worker didn't return chunks_used.
+  const workerChunksUsed = rawWorkerResponse?.meta?.chunks_used;
+  const validationChunks = Array.isArray(workerChunksUsed) && workerChunksUsed.length > 0
+    ? workerChunksUsed.map(c => ({ chunk_id: c.chunk_id, text: c.text || " " }))
+    : chunks;
+  const validation = validateAnswer(answerObj, validationChunks);
 
   return {
     query,
