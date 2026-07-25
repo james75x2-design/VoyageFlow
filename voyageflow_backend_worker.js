@@ -42,6 +42,10 @@ import { TRAVEL_CHUNKS, EMBEDDING_MODEL, EMBEDDING_DIMS } from "./data/index/wor
 const WORKER_VERSION = "2.4.0";
 const WORKER_SERVICE = "voyageflow-worker";
 
+// ─── Week 5.1 P2/P3: Rate limiting + metrics (KV-backed) ──────────────────────
+const RATE_LIMIT_MAX = 20;       // max requests per IP per window
+const RATE_LIMIT_WINDOW = 60;    // window in seconds
+
 // ─── Groq Fallback Model Chain ────────────────────────────────────────────────
 // Verify these IDs against your Groq console before deploying.
 const GROQ_FALLBACK_MODELS = [
@@ -275,6 +279,7 @@ function normalizeScores(items, scoreKey) {
 }
 
 const RAG_CANDIDATE_POOL = 20;
+const KB_VERSION = "2026-07-25";   // bump whenever data/index/worker-chunks.js is regenerated; invalidates stale RAG cache
 const RERANKER_MODEL = "@cf/baai/bge-reranker-base";
 
 // Cross-encoder reranker (Week 4): rescores top-N hybrid candidates.
@@ -451,6 +456,17 @@ ${query}
 `.trim();
 }
 
+// Week 5.1: hash the full query for a collision-free, fixed-length cache key.
+// Avoids the collision risk of truncating to the first 200 chars.
+async function hashQuery(text) {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(digest)]
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
+}
+
 function ragExtractQuery(messages) {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -531,6 +547,34 @@ function normalizePath(pathname) {
 }
 
 // ─── ES Module Export ─────────────────────────────────────────────────────────
+// ─── Week 5.1 P2/P3: KV counter helpers ───────────────────────────────────────
+async function incrementCounter(env, key, ttl) {
+  if (!env.RAG_CACHE) return 0;
+  try {
+    const current = parseInt((await env.RAG_CACHE.get(key)) || "0", 10);
+    const next = current + 1;
+    await env.RAG_CACHE.put(key, String(next), ttl ? { expirationTtl: ttl } : {});
+    return next;
+  } catch {
+    return 0;
+  }
+}
+
+async function readCounter(env, key) {
+  if (!env.RAG_CACHE) return 0;
+  try {
+    return parseInt((await env.RAG_CACHE.get(key)) || "0", 10);
+  } catch {
+    return 0;
+  }
+}
+
+async function checkRateLimit(env, request) {
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const count = await incrementCounter(env, `ratelimit:${ip}`, RATE_LIMIT_WINDOW);
+  return { allowed: count <= RATE_LIMIT_MAX, count, ip };
+}
+
 export default {
   async fetch(request, env) {
     const startTime = Date.now();
@@ -553,6 +597,21 @@ export default {
       }, 200, corsHeaders);
     }
 
+    if (request.method === "GET" && path === "/metrics") {
+      const hits = await readCounter(env, "metrics:cache_hits");
+      const misses = await readCounter(env, "metrics:cache_misses");
+      const total = hits + misses;
+      return jsonResponse({
+        service: WORKER_SERVICE,
+        version: WORKER_VERSION,
+        cache_hits: hits,
+        cache_misses: misses,
+        total_rag_requests: total,
+        cache_hit_rate: total > 0 ? Number((hits / total).toFixed(4)) : 0,
+        timestamp: new Date().toISOString()
+      }, 200, corsHeaders);
+    }
+
     // Root GET returns friendly info (only for root path, not arbitrary paths)
     if (request.method === "GET" && path === "") {
       return jsonResponse({
@@ -570,6 +629,15 @@ export default {
     // Method guard
     if (request.method !== "POST") {
       return jsonResponse({ error: "Only POST requests allowed" }, 405, corsHeaders);
+    }
+
+    const rl = await checkRateLimit(env, request);
+    if (!rl.allowed) {
+      logEvent("warn", "rate_limited", { ip: rl.ip, count: rl.count });
+      return jsonResponse(
+        { error: "Rate limit exceeded. Please wait a moment and try again." },
+        429, corsHeaders
+      );
     }
 
     // Parse + validate body
@@ -600,12 +668,13 @@ export default {
       }
 
       // Week 5: KV cache read. Common queries return instantly with zero AI calls.
-      cacheKey = `rag:${query.toLowerCase().trim().slice(0, 200)}`;
+      cacheKey = `rag:${KB_VERSION}:${await hashQuery(query.toLowerCase().trim())}`;
       if (env.RAG_CACHE) {
         try {
           const cached = await env.RAG_CACHE.get(cacheKey, "json");
           if (cached) {
             logEvent("info", "rag_cache_hit", { query_len: query.length });
+            await incrementCounter(env, "metrics:cache_hits");
             return jsonResponse({
               ...cached,
               meta: { ...cached.meta, cache: "hit", latency_ms: Date.now() - startTime }
@@ -747,7 +816,7 @@ export default {
         };
 
         // Week 5: write to KV cache (1-hour TTL) before returning.
-        if (env.RAG_CACHE && cacheKey) {
+        if (env.RAG_CACHE && cacheKey && !ragPayload.unanswered && ragPayload.citations.length > 0) {
           try {
             await env.RAG_CACHE.put(cacheKey, JSON.stringify(ragPayload), { expirationTtl: 3600 });
           } catch (err) {
@@ -755,6 +824,7 @@ export default {
           }
         }
 
+        await incrementCounter(env, "metrics:cache_misses");
         return jsonResponse(
           { ...ragPayload, meta: { ...ragPayload.meta, cache: "miss" } },
           200, corsHeaders
