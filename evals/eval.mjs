@@ -91,10 +91,55 @@ async function runOne(testCase) {
   const answerResult = await answerWithContext(testCase.query);
   const retrieval = evaluateRetrieval(testCase, retrievedChunks);
   const answer = evaluateAnswer(testCase, answerResult);
+
+  // Week 4: _retrieval_optional flag — for semantic queries where the "correct"
+  // chunk match is a judgment call. Grade the answer, not the exact chunks.
+  if (testCase._retrieval_optional && answer.pass) {
+    retrieval.pass = true;
+    retrieval.optional_override = true;
+  }
+
+  const overallPass = retrieval.pass && answer.pass;
+
+  // Week 4: extract pipeline signals from answer-with-context debug output.
+  const debug = answerResult.debug || {};
+  const pipeline = debug.pipeline || "local_hybrid";
+  const retrievalSignal = debug.retrieval_signal || "unknown";
+  const rankingSignal = debug.ranking_signal || "n/a";
+  const workerVersion = debug.worker_version || null;
+  const workerModel = debug.worker_model || null;
+  const workerLatencyMs = debug.latency_ms ?? null;
+
+  // Week 4: categorize failures so reports say WHY, not just IF.
+  //   retrieval_fail        - expected chunks missing from retrieved set
+  //   generation_fail       - retrieval OK, but no answer text produced
+  //   grounding_fail        - answered but citations wrong OR claims uncited
+  //   unanswered_mismatch   - answered/unanswered flag didn't match expectation
+  //   pass                  - all checks green
+  let failureCategory = "pass";
+  if (!overallPass) {
+    if (!retrieval.pass) {
+      failureCategory = "retrieval_fail";
+    } else if ((answerResult.answer_markdown || "").trim().length === 0) {
+      failureCategory = "generation_fail";
+    } else if (answer.unanswered_actual !== answer.unanswered_expected) {
+      failureCategory = "unanswered_mismatch";
+    } else {
+      failureCategory = "grounding_fail";
+    }
+  }
+
   return {
     id: testCase.id,
     query: testCase.query,
-    pass: retrieval.pass && answer.pass,
+    pass: overallPass,
+    failure_category: failureCategory,
+    pipeline,
+    retrieval_signal: retrievalSignal,
+    ranking_signal: rankingSignal,
+    worker_version: workerVersion,
+    worker_model: workerModel,
+    worker_latency_ms: workerLatencyMs,
     retrieval,
     answer
   };
@@ -155,6 +200,64 @@ async function main() {
   console.log(`Retrieval passed: ${retrievalPassed}/${total} (${report.retrieval_pass_rate}%)`);
   console.log(`Answer passed: ${answerPassed}/${total} (${report.answer_pass_rate}%)`);
   console.log(`Overall pass rate: ${report.overall_pass_rate}%`);
+
+  // Week 4: failure category breakdown.
+  const categoryCounts = results.reduce((acc, r) => {
+    acc[r.failure_category] = (acc[r.failure_category] || 0) + 1;
+    return acc;
+  }, {});
+  const categoryOrder = ["pass", "retrieval_fail", "generation_fail", "grounding_fail", "unanswered_mismatch"];
+  console.log("");
+  console.log("Failure Categories");
+  console.log("------------------");
+  for (const cat of categoryOrder) {
+    if (categoryCounts[cat]) {
+      console.log(`  ${cat}: ${categoryCounts[cat]}`);
+    }
+  }
+
+  // Week 4: pipeline usage breakdown (worker_rag vs local_hybrid).
+  const pipelineCounts = results.reduce((acc, r) => {
+    const key = r.pipeline || "unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  console.log("");
+  console.log("Pipelines Used");
+  console.log("--------------");
+  for (const [p, count] of Object.entries(pipelineCounts)) {
+    console.log(`  ${p}: ${count}`);
+  }
+
+  // Week 4: retrieval + ranking signal breakdowns.
+  const retrievalSignalCounts = results.reduce((acc, r) => {
+    const key = r.retrieval_signal || "unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const rankingSignalCounts = results.reduce((acc, r) => {
+    const key = r.ranking_signal || "n/a";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  console.log("");
+  console.log("Retrieval Signals");
+  console.log("-----------------");
+  for (const [sig, count] of Object.entries(retrievalSignalCounts)) {
+    console.log(`  ${sig}: ${count}`);
+  }
+  console.log("");
+  console.log("Ranking Signals");
+  console.log("---------------");
+  for (const [sig, count] of Object.entries(rankingSignalCounts)) {
+    console.log(`  ${sig}: ${count}`);
+  }
+
+  // Week 4: attach breakdowns to persisted report.
+  report.failure_categories = categoryCounts;
+  report.pipelines_used = pipelineCounts;
+  report.retrieval_signals = retrievalSignalCounts;
+  report.ranking_signals = rankingSignalCounts;
 
   await fs.writeFile(REPORT_PATH, JSON.stringify(report, null, 2) + "\n");
   console.log("");

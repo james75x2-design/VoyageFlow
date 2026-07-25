@@ -39,7 +39,7 @@ import { TRAVEL_CHUNKS, EMBEDDING_MODEL, EMBEDDING_DIMS } from "./data/index/wor
  */
 
 // ─── Worker Metadata ──────────────────────────────────────────────────────────
-const WORKER_VERSION = "2.3.0";
+const WORKER_VERSION = "2.4.0";
 const WORKER_SERVICE = "voyageflow-worker";
 
 // ─── Groq Fallback Model Chain ────────────────────────────────────────────────
@@ -274,7 +274,35 @@ function normalizeScores(items, scoreKey) {
   return items.map(x => ({ ...x, [`${scoreKey}_norm`]: x[scoreKey] / max }));
 }
 
-async function ragRetrieveHybrid(env, query, topK) {
+const RAG_CANDIDATE_POOL = 20;
+const RERANKER_MODEL = "@cf/baai/bge-reranker-base";
+
+// Cross-encoder reranker (Week 4): rescores top-N hybrid candidates.
+// Returns candidates sorted by rerank_score descending, or null on failure
+// so the caller can gracefully fall back to hybrid fusion ranking.
+async function rerankCandidates(env, query, candidates) {
+  if (!env.AI || !candidates || candidates.length === 0) return null;
+  try {
+    const contexts = candidates.map(c => ({
+      text: String(c.text || "").slice(0, 1000)
+    }));
+    const result = await env.AI.run(RERANKER_MODEL, { query, contexts });
+    const scores = result?.response;
+    if (!Array.isArray(scores) || scores.length !== candidates.length) return null;
+
+    return candidates
+      .map((c, i) => ({
+        ...c,
+        rerank_score: Number((scores[i]?.score ?? 0).toFixed(4))
+      }))
+      .sort((a, b) => b.rerank_score - a.rerank_score);
+  } catch (err) {
+    return null;
+  }
+}
+
+async function ragRetrieveHybrid(env, query, topK, poolSize) {
+  const effectiveK = poolSize || topK;
   const queryTokens = ragTokenize(query);
   if (queryTokens.length === 0) return [];
 
@@ -373,7 +401,7 @@ function ragRetrieve(query, topK = RAG_TOP_K) {
     }))
     .filter(r => r.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+    .slice(0, effectiveK);
 }
 
 function ragBuildContext(chunks) {
@@ -570,14 +598,27 @@ export default {
         return jsonResponse({ error: "Missing user query for RAG mode." }, 400, corsHeaders);
       }
 
-      ragChunks = await ragRetrieveHybrid(env, query, RAG_TOP_K);
+      // Week 4: retrieve top-20 candidates via hybrid, then rerank to top-5.
+      const candidatePool = await ragRetrieveHybrid(env, query, RAG_TOP_K, RAG_CANDIDATE_POOL);
+      const reranked = await rerankCandidates(env, query, candidatePool);
+      let rankingSignal = "hybrid_fusion";
+
+      if (reranked && reranked.length > 0) {
+        ragChunks = reranked.slice(0, RAG_TOP_K);
+        rankingSignal = "reranker";
+      } else {
+        ragChunks = candidatePool.slice(0, RAG_TOP_K);
+      }
+
       ragAllowedIds = ragChunks.map(c => c.chunk_id);
 
       logEvent("info", "rag_retrieved", {
         query_len: query.length,
+        candidate_pool_size: candidatePool.length,
         chunks_count: ragChunks.length,
         chunk_ids: ragAllowedIds,
-        retrieval_signal: ragChunks[0]?.retrieval_signal || "none"
+        retrieval_signal: ragChunks[0]?.retrieval_signal || "none",
+        ranking_signal: rankingSignal
       });
 
       // No relevant chunks → return fallback answer WITHOUT calling LLM (fast path).
@@ -673,10 +714,16 @@ export default {
             model: usedModel,
             version: WORKER_VERSION,
             latency_ms: latencyMs,
+            ranking_signal: ragChunks[0]?.rerank_score != null ? "reranker" : "hybrid_fusion",
+            retrieval_signal: ragChunks[0]?.retrieval_signal || "unknown",
             chunks_used: ragChunks.map(c => ({
               chunk_id: c.chunk_id,
               section: c.section,
-              score: c.score
+              score: c.score,
+              keyword_score: c.keyword_score,
+              vector_score: c.vector_score,
+              rerank_score: c.rerank_score ?? null,
+              retrieval_signal: c.retrieval_signal
             }))
           }
         }, 200, corsHeaders);
