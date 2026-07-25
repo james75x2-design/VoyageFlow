@@ -102,6 +102,12 @@ For trips longer than about 7 days OR spanning multiple cities:
 - If you use a table, use at most ONE compact summary table (phase/city level), never one row per day for a long trip. Keep tables small and readable.
 - Prioritise the highlights and the shape of the journey over listing every single day.
 
+# Revising an Existing Plan
+If the user asks to change an itinerary you already provided (add a city, swap a day, adjust pace/budget), do NOT reprint the entire itinerary from scratch. Instead:
+- Describe the specific change and how it fits, showing only the affected phase or days.
+- Then offer: "Want me to regenerate the full updated itinerary?"
+Only regenerate the complete plan if they explicitly ask for the full rewrite. This keeps revisions fast and readable.
+
 Tone: luxurious but genuine. Favour insight and judgement over exhaustive lists.
 
 # Booking Summary (Structured Output)
@@ -907,7 +913,7 @@ async function callGemini(messages, systemPrompt, env) {
         contents: messages,
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 1500
+          maxOutputTokens: 4096
         }
       })
     }, UPSTREAM_TIMEOUT_MS);
@@ -959,7 +965,7 @@ async function callGroq(messages, model, systemPrompt, env) {
         model: model,
         messages: promptPayload,
         temperature: 0.2,
-        max_tokens: 1500
+        max_tokens: 4096
       })
     }, UPSTREAM_TIMEOUT_MS);
   } catch (err) {
