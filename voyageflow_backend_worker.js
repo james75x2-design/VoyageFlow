@@ -62,10 +62,10 @@ const ALLOWED_ORIGINS = [
   "https://james75x2-design.github.io",
   "http://localhost:5500",
   "http://127.0.0.1:5500",
-  "http://localhost:3000",
-  
-// GitHub Codespaces preview URLs — allow the specific ones you use for testing
-  "https://literate-tribble-jr544vxxxwppcrxw-8000.app.github.dev"
+  "http://localhost:3000"
+  // Note: GitHub Codespaces preview URLs are session-specific. Add your current
+  // Codespace origin here temporarily for local testing, or test end-to-end on
+  // the live GitHub Pages origin (already allowlisted above).
 ];
 
 // ─── System Prompt Template ───────────────────────────────────────────────────
@@ -590,12 +590,30 @@ export default {
     let ragChunks = [];
     let ragAllowedIds = [];
     let systemPrompt;
+    let cacheKey = null;   // Week 5: shared between cache read (rag branch) + write (success block)
 
     if (mode === "rag") {
       const query = ragExtractQuery(messages);
       if (!query) {
         logEvent("warn", "rag_missing_query", {});
         return jsonResponse({ error: "Missing user query for RAG mode." }, 400, corsHeaders);
+      }
+
+      // Week 5: KV cache read. Common queries return instantly with zero AI calls.
+      cacheKey = `rag:${query.toLowerCase().trim().slice(0, 200)}`;
+      if (env.RAG_CACHE) {
+        try {
+          const cached = await env.RAG_CACHE.get(cacheKey, "json");
+          if (cached) {
+            logEvent("info", "rag_cache_hit", { query_len: query.length });
+            return jsonResponse({
+              ...cached,
+              meta: { ...cached.meta, cache: "hit", latency_ms: Date.now() - startTime }
+            }, 200, corsHeaders);
+          }
+        } catch (err) {
+          logEvent("warn", "rag_cache_read_failed", { error: err.message });
+        }
       }
 
       // Week 4: retrieve top-20 candidates via hybrid, then rerank to top-5.
@@ -705,7 +723,7 @@ export default {
           }))
           .filter(c => c.chunk_ids.length > 0);
 
-        return jsonResponse({
+        const ragPayload = {
           answer_markdown: normalized.answer_markdown || RAG_FALLBACK_ANSWER,
           citations: cleanCitations,
           unanswered: Boolean(normalized.unanswered) || cleanCitations.length === 0,
@@ -726,7 +744,21 @@ export default {
               retrieval_signal: c.retrieval_signal
             }))
           }
-        }, 200, corsHeaders);
+        };
+
+        // Week 5: write to KV cache (1-hour TTL) before returning.
+        if (env.RAG_CACHE && cacheKey) {
+          try {
+            await env.RAG_CACHE.put(cacheKey, JSON.stringify(ragPayload), { expirationTtl: 3600 });
+          } catch (err) {
+            logEvent("warn", "rag_cache_write_failed", { error: err.message });
+          }
+        }
+
+        return jsonResponse(
+          { ...ragPayload, meta: { ...ragPayload.meta, cache: "miss" } },
+          200, corsHeaders
+        );
       }
 
       // Default (chat/booking) mode: unchanged response shape.

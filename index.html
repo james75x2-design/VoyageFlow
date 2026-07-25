@@ -852,6 +852,7 @@
         <button type="button" class="active" data-mode="chat" role="tab" aria-selected="true">✈️ Plan a trip</button>
         <button type="button" data-mode="rag" role="tab" aria-selected="false">❓ Ask VoyageFlow</button>
       </div>
+      <div id="intent-hint" style="text-align:center; font-size:12px; color:#8b9ab5; opacity:0; transition:opacity 0.3s; min-height:16px; margin-top:4px;" aria-live="polite"></div>
 
       <!-- User Chat Form -->
       <form id="chat-form" onsubmit="event.preventDefault(); handleFormSubmit();">
@@ -898,11 +899,65 @@
     // Application state variables
     let conversationHistory = [];
     let currentMode = 'chat';
+    let userLockedMode = false;   // true once the user manually clicks a toggle
+    let intentDebounceTimer = null;
+
+    // ── Week 5: Intent Classifier ────────────────────────────────────────────
+    // Regex-first heuristic. Returns 'rag', 'chat', or null (ambiguous).
+    function classifyIntent(text) {
+      const t = (text || "").toLowerCase().trim();
+      if (t.length < 3) return null;
+
+      const ragPatterns = [
+        /\b(what|how|does|do|can|is|are|why|which|where)\b.*\b(voyageflow|you|your|booking|policy|guarantee|cite|source|link|support|handle)\b/,
+        /\b(what booking|how does|can voyageflow|do you (support|offer|provide|guarantee|generate))\b/,
+        /\b(policy|policies|guarantee|refund|cancellation|disclaimer|verify)\b/
+      ];
+      const chatPatterns = [
+        /\b(plan|book me|trip to|travel to|going to|visit|vacation|holiday|getaway|itinerary)\b/,
+        /\b\d+\s*(day|night|week)s?\b/,
+        /\b(with my|for \d+|adults?|children|kids|partner|family|solo)\b/
+      ];
+
+      const ragScore = ragPatterns.filter(p => p.test(t)).length + (t.endsWith("?") ? 1 : 0);
+      const chatScore = chatPatterns.filter(p => p.test(t)).length;
+
+      if (ragScore > chatScore) return 'rag';
+      if (chatScore > ragScore) return 'chat';
+      return null;
+    }
+
+    // Visually switch the toggle to a detected mode without a user click.
+    function applyDetectedMode(mode) {
+      if (!mode || mode === currentMode) return;
+      currentMode = mode;
+      document.querySelectorAll('.mode-toggle button').forEach(b => {
+        const isActive = b.dataset.mode === mode;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      const input = document.getElementById('chat-input');
+      if (input) {
+        input.placeholder = mode === 'rag'
+          ? 'Ask a factual question about VoyageFlow...'
+          : 'Ask me anything about your next trip...';
+      }
+      const hint = document.getElementById('intent-hint');
+      if (hint) {
+        hint.textContent = mode === 'rag'
+          ? '🧭 Auto-detected: Ask VoyageFlow'
+          : '🧭 Auto-detected: Plan a trip';
+        hint.style.opacity = '1';
+      }
+    }
 
     // Mode toggle wiring
     document.querySelectorAll('.mode-toggle button').forEach(btn => {
       btn.addEventListener('click', () => {
+        userLockedMode = true;   // manual choice wins over auto-detection
         currentMode = btn.dataset.mode;
+        const hint = document.getElementById('intent-hint');
+        if (hint) hint.style.opacity = '0';
         document.querySelectorAll('.mode-toggle button').forEach(b => {
           b.classList.toggle('active', b === btn);
           b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
@@ -1165,6 +1220,15 @@
     }
 
     chatInput.addEventListener('input', () => {
+      // Week 5: auto-classify intent (debounced) unless user locked the mode.
+      if (!userLockedMode) {
+        clearTimeout(intentDebounceTimer);
+        const text = chatInput.value;
+        intentDebounceTimer = setTimeout(() => {
+          const detected = classifyIntent(text);
+          if (detected) applyDetectedMode(detected);
+        }, 400);
+      }
       const len = chatInput.value.length;
       charCounter.textContent = `${len}/4000`;
       sendBtn.disabled = len === 0 || isRequestActive;
