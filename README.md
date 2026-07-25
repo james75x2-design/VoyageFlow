@@ -1,42 +1,16 @@
 # VoyageFlow — AI Travel Concierge ✈️
 
-**A free, zero-friction AI travel concierge — no sign-up, instant itineraries, a ready-to-book desk for flights/hotels/tours/insurance, and a grounded RAG mode with cross-encoder reranking for factual Q&A.**
+**A free, zero-friction AI travel concierge — no sign-up, instant itineraries, a ready-to-book desk for flights/hotels/tours/insurance, plus a grounded RAG mode with cross-encoder reranking, response caching, and automatic intent routing.**
 
-<p>
-  <img src="https://img.shields.io/badge/status-live-brightgreen" alt="Status">
-  <img src="https://img.shields.io/badge/worker-v2.4.0-blue" alt="Worker Version">
-  <img src="https://img.shields.io/badge/RAG-hybrid%20+%20reranker-brightgreen" alt="RAG">
-  <img src="https://img.shields.io/badge/eval-100%25%20pass-brightgreen" alt="Eval">
-  <img src="https://img.shields.io/badge/parity-worker%20mode%3Arag-brightgreen" alt="Parity">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/backend-Cloudflare%20Workers-orange" alt="Backend">
-  <img src="https://img.shields.io/badge/AI-Gemini%20%2B%20Groq-purple" alt="AI Stack">
-  <img src="https://img.shields.io/badge/frontend-GitHub%20Pages-lightgrey" alt="Frontend">
-</p>
-
----
-
-## 📚 Table of Contents
-
-- [What Is VoyageFlow?](#what-is-voyageflow)
-- [🚀 Live Demo](#-live-demo)
-- [🖼️ Screenshots](#️-screenshots)
-- [🏗️ Architecture](#️-architecture)
-- [✨ Features](#-features)
-- [🧠 RAG Mode (v2.2.0 → v2.4.0)](#-rag-mode-v220--v240)
-- [🎯 Cross-encoder Reranker (v2.4.0)](#-cross-encoder-reranker-v240)
-- [📊 Evaluation](#-evaluation)
-- [🤖 AI Backend — Dual-Engine Routing](#-ai-backend--dual-engine-routing-v240)
-- [📡 API Reference](#-api-reference)
-- [🏗️ Repository Structure](#️-repository-structure)
-- [💻 Local Development](#-local-development)
-- [⚡ Deployment Guide](#-deployment-guide)
-- [🔒 Security & Privacy](#-security--privacy)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🗺️ Roadmap](#️-roadmap)
-- [📈 Worker Version History](#-worker-version-history)
-- [👤 About](#-about)
-- [📄 License](#-license)
+![Status](https://img.shields.io/badge/status-live-brightgreen)
+![Worker](https://img.shields.io/badge/worker-v2.4.0-blue)
+![RAG](https://img.shields.io/badge/RAG-hybrid%20%2B%20reranker-brightgreen)
+![Eval](https://img.shields.io/badge/eval-100%25%20pass-brightgreen)
+![Cache](https://img.shields.io/badge/cache-KV%20backed-blueviolet)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Backend](https://img.shields.io/badge/backend-Cloudflare%20Workers-orange)
+![AI](https://img.shields.io/badge/AI-Gemini%20%2B%20Groq-purple)
+![Frontend](https://img.shields.io/badge/frontend-GitHub%20Pages-lightgrey)
 
 ---
 
@@ -44,12 +18,12 @@
 
 VoyageFlow turns a normal conversation into a complete travel plan. Tell it where you want to go, when, and who's joining — it responds with a personalized, day-by-day itinerary written in a luxury-concierge voice, then generates a structured booking desk with deep links to search flights, hotels, tours, and insurance already pre-filled with the traveler's dates, destination, and party size.
 
-As of **v2.4.0**, VoyageFlow is a **two-mode AI travel assistant with production-grade RAG**:
+As of **v2.4.0 + Week 5.1**, VoyageFlow is a **two-mode AI travel assistant with production-grade RAG**:
 
-- **✈️ Plan a trip** — the original itinerary planner + Booking Desk.
-- **❓ Ask VoyageFlow** — factual Q&A grounded in a curated travel knowledge base with hybrid retrieval + cross-encoder reranking, visible citations, prompt-injection defense, and scoped out-of-scope refusal.
+- **✈️ Plan a trip** — the itinerary planner + Booking Desk.
+- **❓ Ask VoyageFlow** — factual Q&A grounded in a curated travel knowledge base with hybrid retrieval + cross-encoder reranking, visible citations, response caching, and prompt-injection defense.
 
-No sign-up. No API key required from the user. Just start planning.
+An **intent classifier** auto-routes between the two modes, and **KV caching + rate limiting + a `/metrics` endpoint** keep it fast, cheap, and observable in production. No sign-up. No API key required from the user.
 
 ---
 
@@ -57,7 +31,8 @@ No sign-up. No API key required from the user. Just start planning.
 
 👉 **https://james75x2-design.github.io/VoyageFlow/**
 
-Backend health check: https://voyageflow.james75x2.workers.dev/health
+- Backend health: https://voyageflow.james75x2.workers.dev/health
+- Cache metrics: https://voyageflow.james75x2.workers.dev/metrics
 
 ---
 
@@ -87,9 +62,9 @@ Auto-generated from a structured JSON block emitted by the AI. Deep links are pr
 
 ---
 
-### 4. RAG Mode — Grounded Q&A with Citations *(v2.2.0)*
+### 4. RAG Mode — Grounded Q&A with Citations + Auto-Routing
 
-Toggle to **❓ Ask VoyageFlow** to ask factual questions about the product itself. Every answer is grounded in the travel knowledge base and shows a **Sources** strip with the exact chunk IDs used.
+Toggle (or let the intent classifier auto-switch) to **❓ Ask VoyageFlow** for factual questions. Every answer is grounded in the travel knowledge base and shows a **Sources** strip with the exact chunk IDs used.
 
 <img src="https://raw.githubusercontent.com/james75x2-design/VoyageFlow/main/docs/screenshots/04-rag-mode-citations.png" alt="RAG mode answer with Sources strip">
 
@@ -101,89 +76,75 @@ Toggle to **❓ Ask VoyageFlow** to ask factual questions about the product itse
 
 **Data flow — Chat mode**
 
-1. User sends a message from `index.html` (toggle set to **Plan a trip**).
+1. User sends a message (mode toggle on **Plan a trip**, or auto-routed by the intent classifier).
 2. Frontend POSTs `{ messages }` to the Cloudflare Worker.
-3. Worker validates payload, injects today's date into the system prompt, tries Gemini first, falls back through the Groq chain on failure.
-4. Response returns as JSON with `reply` + `meta` (model, worker version, latency).
-5. Frontend parses the embedded booking JSON block and renders a Premium Travel Booking Desk.
+3. Worker enforces per-IP rate limit, injects today's date, tries Gemini first, falls back through the Groq chain on failure.
+4. Response returns as JSON with `reply` + `meta` (model, version, latency).
+5. Frontend parses the embedded booking JSON block and renders the Booking Desk.
 
-**Data flow — RAG mode (v2.4.0)**
+**Data flow — RAG mode (v2.4.0 + Week 5.1)**
 
-1. User sends a message from `index.html` (toggle set to **Ask VoyageFlow**).
-2. Frontend POSTs `{ mode: "rag", messages }` to the Worker.
-3. Worker runs **hybrid retrieval** — keyword + vector cosine similarity against 12 embedded travel chunks — and returns top-20 candidates.
-4. Worker runs **cross-encoder reranker** (`@cf/baai/bge-reranker-base`) to rescore candidates and pick the top-5.
+1. User sends a message (mode toggle on **Ask VoyageFlow**, or auto-routed).
+2. Frontend POSTs `{ mode: "rag", messages }`.
+3. Worker enforces rate limit, then checks the **KV cache** — a hit returns instantly (zero AI calls).
+4. On miss: **hybrid retrieval** (keyword + vector) → top-20 candidates → **cross-encoder reranker** → top-5.
 5. Citation-enforced prompt sent to Gemini (with Groq fallback).
-6. Response normalized into `{ answer_markdown, citations, unanswered, meta }`.
-7. UI strips inline `[chunk_id]` markers, renders "Sources:" strip below.
-
-**Data flow — Eval harness (production-parity)**
-
-1. `evals/eval.mjs` iterates test cases from `evals/eval-data.json`.
-2. Each test calls `answerWithContext(query)` — same entry point production uses.
-3. `answerWithContext` sends `{ mode: "rag", messages }` to the live Worker.
-4. Response includes `retrieval_signal` + `ranking_signal` + `chunks_used` with `rerank_score`.
-5. Eval captures pass/fail + failure category + which code path each test exercised.
+6. Response normalized into `{ answer_markdown, citations, unanswered, meta }`, **written to KV cache** (if answered), and returned.
+7. UI strips inline `[chunk_id]` markers, renders the "Sources:" strip.
 
 ---
 
 ## ✨ Features
 
-- **Two-mode UI** — toggle between **Plan a trip** (chat/booking) and **Ask VoyageFlow** (RAG Q&A).
-- **Conversational trip planning** — the assistant asks for missing details instead of guessing.
-- **Luxury day-by-day itineraries** — written in a premium travel-curator voice.
-- **Premium Travel Booking Desk** — auto-generated card with deep links to Booking.com, Google Flights, GetYourGuide, VisitorsCoverage.
-- **Grounded factual Q&A (v2.2.0+)** — RAG mode returns answers with visible citations, refuses out-of-scope questions, and defends against prompt injection.
-- **Cross-encoder reranker (v2.4.0)** — refines top-20 hybrid candidates to top-5 for higher answer quality.
-- **Eval-to-production parity (v2.4.0)** — eval harness exercises the exact Worker code path production users hit.
-- **Pipeline telemetry** — eval reports show which pipeline, retrieval signal, and ranking signal each test used.
-- **Dual-engine AI routing** — Gemini primary; on error or rate-limit, silently retries through Groq fallback chain.
-- **IATA-aware flight routing** — Maldives → MLE, Bali → DPS, Hawaii → HNL, Ibiza → IBZ.
-- **Cookie-based memory** — remembers last destination and personalizes welcome + suggestions.
-- **Dynamic seasonal suggestions** — Tokyo Spring, Paris Summer, Bali Escape, etc.
-- **Secure backend** — API keys live only in encrypted Cloudflare Worker secrets.
+- **Two-mode UI** — Plan a trip (chat/booking) and Ask VoyageFlow (RAG Q&A)
+- **Intent classifier** — auto-routes between modes based on the query (no manual toggle needed)
+- **Conversational trip planning** — asks for missing details instead of guessing
+- **Luxury day-by-day itineraries** — premium travel-curator voice
+- **Premium Booking Desk** — deep links to Booking.com, Google Flights, GetYourGuide, VisitorsCoverage
+- **Grounded factual Q&A** — RAG with visible citations, out-of-scope refusal, prompt-injection defense
+- **Cross-encoder reranker** — refines top-20 hybrid candidates to top-5
+- **KV response caching** — repeat RAG queries return in ~100ms (zero AI calls)
+- **Rate limiting** — per-IP sliding window protects AI budget
+- **`/metrics` endpoint** — live cache hit-rate observability
+- **Dual-engine AI routing** — Gemini primary; silent Groq fallback chain
+- **IATA-aware flight routing** — Maldives → MLE, Bali → DPS, Hawaii → HNL, etc.
+- **Cookie-based memory** — remembers last destination, personalizes welcome
+- **Secure backend** — API keys only in encrypted Worker secrets
 
 ---
 
 ## 🧠 RAG Mode (v2.2.0 → v2.4.0)
 
-VoyageFlow supports two interaction modes via a toggle in the UI:
-
 ### ✈️ Plan a trip (chat mode)
-The original itinerary planner — describe your trip, and VoyageFlow generates a bespoke day-by-day guide plus a Booking Demand Card with pre-filled search URLs for hotels, flights, and experiences.
+Describe your trip → VoyageFlow generates a bespoke day-by-day guide plus a Booking Demand Card with pre-filled search URLs.
 
 ### ❓ Ask VoyageFlow (RAG mode)
 Ask factual questions about VoyageFlow itself — booking policies, verification guidance, destination coverage. Answers are grounded in a curated travel knowledge base with visible citations.
 
 **How it works (v2.4.0):**
 
-- **12 chunks embedded in the Cloudflare Worker** — no external vector database, sub-100 KiB bundle.
-- **Hybrid retrieval** — keyword scoring + vector cosine similarity via `@cf/baai/bge-small-en-v1.5`, fused 0.5/0.5.
-- **Cross-encoder reranker** — `@cf/baai/bge-reranker-base` refines top-20 hybrid candidates to top-5 for LLM context.
-- **Citation enforcement** — hallucinated chunk IDs filtered against the retrieved set before response.
-- **Prompt injection defense** — verified in eval `vf-eval-006`.
-- **Out-of-scope refusal** — verified in evals `vf-eval-008` through `vf-eval-010`.
-- **Fallback answer** — when no relevant chunks are retrieved, the Worker short-circuits with a graceful "not enough evidence" response.
-- **Graceful fallbacks** — vector → keyword-only, reranker → hybrid_fusion, if either AI call fails.
+- **12 chunks embedded in the Worker** — no external vector DB
+- **Hybrid retrieval** — keyword scoring + vector cosine similarity via `@cf/baai/bge-small-en-v1.5`, fused 0.5/0.5
+- **Cross-encoder reranker** — `@cf/baai/bge-reranker-base` refines top-20 → top-5
+- **Citation enforcement** — hallucinated chunk IDs filtered before response
+- **Prompt-injection defense** — verified in eval `vf-eval-006`
+- **Out-of-scope refusal** — verified in evals `vf-eval-008` … `vf-eval-010`
+- **Graceful fallbacks** — vector → keyword-only, reranker → hybrid fusion
 
 ---
 
 ## 🎯 Cross-encoder Reranker (v2.4.0)
-
-**What changed in Week 4:**
-
-Before v2.4.0, RAG mode used hybrid retrieval alone — top-5 chunks by weighted keyword + vector score fusion. Week 4 adds a **cross-encoder reranker pass** on top:
 
 ```
 Query
   ↓
 Hybrid retrieval → top-20 candidate pool
   ↓
-@cf/baai/bge-reranker-base → rescore candidates against query
+@cf/baai/bge-reranker-base → rescore candidates
   ↓
 Top-5 (reranker order) → LLM prompt with citation enforcement
   ↓
-Response with rerank_score in chunks_used, ranking_signal in meta
+Response: rerank_score in chunks_used, ranking_signal in meta
 ```
 
 **Two Cloudflare Workers AI models running natively:**
@@ -193,12 +154,43 @@ Response with rerank_score in chunks_used, ranking_signal in meta
 | `@cf/baai/bge-small-en-v1.5` | 384-dim query + chunk embeddings |
 | `@cf/baai/bge-reranker-base` | Cross-encoder rerank scoring |
 
-**Graceful fallback ladder:**
-- If embedding call fails → falls back to keyword-only retrieval
-- If reranker call fails → falls back to hybrid fusion ranking (skips rerank)
-- If Worker unreachable → local pipeline falls back to keyword-only + Worker chat mode
+Structured logs tag `retrieval_signal` (`hybrid` / `keyword_only`) and `ranking_signal` (`reranker` / `hybrid_fusion`) so fallbacks surface immediately.
 
-Each fallback is tagged in structured logs (`retrieval_signal`, `ranking_signal`) so regressions surface immediately in eval reports.
+---
+
+## 🧭 Intent Classifier (Week 5)
+
+Auto-detects whether a query is "plan a trip" (chat/booking) or "ask a factual question" (RAG), so users don't have to manually toggle modes.
+
+- **Regex-based heuristic** returning `rag` | `chat` | `null` (ambiguous)
+- **Classify on-send** — runs once from the complete query at submit time (not mid-typing), avoiding jarring toggle flips and screen-reader noise
+- **Manual lock** — clicking a toggle locks the choice; the classifier respects it
+- **Auto-detect hint** — "🧭 Auto-detected: [mode]" shown when it switches
+
+> Deliberately regex-only: VoyageFlow's two modes are lexically distinct enough that regex achieves high accuracy without the latency/cost of an LLM classification call. An LLM fallback tier could be added later if usage data shows a need.
+
+**Verified (all 4 scenarios):** RAG auto-detect, chat auto-detect, manual override wins, ambiguous keeps current mode.
+
+---
+
+## ⚡ Response Caching + Rate Limiting + Metrics (Week 5.1)
+
+Production hardening built on a shared KV-counter foundation.
+
+### KV Response Caching
+- Cache key: `rag:${KB_VERSION}:${sha256(query)}` — **KB-versioned** (rebuilding the KB orphans stale entries) and **hashed** (no truncation collisions)
+- Only caches **answered, cited** responses (never refusals)
+- 1-hour TTL; `meta.cache: "hit" | "miss"` for observability
+- **Measured:** cache miss ~5s (full pipeline) → cache hit ~100ms (**~40x faster**)
+
+### Rate Limiting
+- Per-IP sliding window: **20 requests / 60s** → `429` when exceeded
+- Protects Gemini/Groq calls + Cloudflare AI neuron budget
+- **Verified:** requests beyond the limit correctly return `429`
+
+### Cache Metrics
+- `GET /metrics` → `cache_hits`, `cache_misses`, `total_rag_requests`, `cache_hit_rate`
+- Counters increment on every RAG hit/miss via a shared `incrementCounter()` KV helper
 
 ---
 
@@ -217,175 +209,118 @@ Each fallback is tagged in structured logs (`retrieval_signal`, `ranking_signal`
 ### Week 4 telemetry (all 15 tests)
 
 ```
-Pipelines Used
---------------
-  worker_rag: 15
-
-Retrieval Signals
------------------
-  hybrid: 15
-
-Ranking Signals
----------------
-  reranker: 15
-
-Failure Categories
-------------------
-  pass: 15
+Pipelines Used:     worker_rag: 15
+Retrieval Signals:  hybrid: 15
+Ranking Signals:    reranker: 15
+Failure Categories: pass: 15
 ```
 
-**Every single test exercises the full production pipeline** (hybrid retrieval → top-20 → reranker → top-5 → LLM) and passes.
-
-### Run the eval harness yourself
+### Run the eval harness
 
 ```bash
 node evals/eval.mjs
 ```
 
-Output writes to `evals/eval-report.json` with per-test retrieval + answer scoring, latency, citation validation, pipeline/signal tags, and failure category.
+Writes `evals/eval-report.json` with per-test retrieval + answer scoring, latency, citation validation, pipeline/signal tags, and failure category.
 
-**Force local hybrid path** (for A/B testing or when the Worker is unreachable):
+**Force local hybrid path** (A/B or offline):
 
 ```bash
 USE_WORKER_RAG=false node evals/eval.mjs
 ```
 
-**Rebuild the embedded knowledge base after editing `data/kb/*.md`:**
+**Rebuild the embedded KB after editing `data/kb/*.md`:**
 
 ```bash
 node src/rag/ingest-and-chunk.mjs
 node scripts/embed-chunks.mjs
 node scripts/build-worker-chunks.mjs
+# then bump KB_VERSION in the worker and redeploy
 npx wrangler deploy
 ```
-
-Reports archived: `eval-report-week2-baseline.json`, `eval-report-week3-hybrid.json`, `eval-report-pre-week4-baseline.json`, `eval-report-week4-reranker.json`.
 
 ---
 
 ## 🤖 AI Backend — Dual-Engine Routing (v2.4.0)
 
-The Cloudflare Worker is a hardened ES-Module gateway with the following behavior:
-
 | Layer | Provider | Model | Role |
 |---|---|---|---|
-| Primary | Google Gemini | `gemini-2.5-flash` | Fast, large-context reasoning for itinerary + structured extraction |
-| Fallback 1 | Groq | `openai/gpt-oss-120b` | Reasoning-capable, high-quality structured output |
-| Fallback 2 | Groq | `llama-3.3-70b-versatile` | Fast and reliable structured output |
+| Primary | Google Gemini | `gemini-2.5-flash` | Fast, large-context reasoning + structured extraction |
+| Fallback 1 | Groq | `openai/gpt-oss-120b` | Reasoning-capable structured output |
+| Fallback 2 | Groq | `llama-3.3-70b-versatile` | Fast, reliable structured output |
 
-Fallback order is controlled by the `GROQ_FALLBACK_MODELS` array in `voyageflow_backend_worker.js`. Every successful response includes a `meta` block:
+Every successful response includes a `meta` block (model, version, latency). RAG responses additionally include `mode`, `ranking_signal`, `retrieval_signal`, `cache`, and `chunks_used` with per-chunk `keyword_score` / `vector_score` / `rerank_score`.
 
-```json
-{
-  "reply": "…luxury itinerary + JSON block…",
-  "meta": {
-    "model": "gemini-2.5-flash",
-    "version": "2.4.0",
-    "latency_ms": 842
-  }
-}
-```
-
-**Worker capabilities (v2.4.0):**
-
-- **`mode: "rag"` branch** — retrieves 12 embedded chunks, hybrid retrieval, cross-encoder reranker, citation-enforcing prompt
-- **Reranker pipeline** — top-20 candidates → `@cf/baai/bge-reranker-base` → top-5 for LLM
-- **Rich telemetry in response** — `chunks_used` includes `keyword_score`, `vector_score`, `rerank_score`, `retrieval_signal`; `meta` includes `ranking_signal` + `retrieval_signal`
-- **Structured logs** tag `retrieval_signal` and `ranking_signal`
-- CORS allowlist (locked to GitHub Pages + localhost dev + Codespaces preview URLs)
-- Payload validation (message count + text length limits)
-- Dynamic date injection (system prompt is rebuilt per request)
-- Upstream timeouts (25s AbortController on Gemini + Groq)
-- Rate-limit surfacing (429 bubbles up to the frontend)
-- `/health` endpoint (uptime-monitor friendly, trailing-slash tolerant)
-- Version + latency metrics on every response
+**Worker capabilities (v2.4.0 + Week 5.1):**
+- `mode: "rag"` branch — hybrid retrieval + reranker + citation-enforcing prompt
+- KV response caching (KB-versioned, hashed keys, skips refusals)
+- Per-IP rate limiting (20/60s)
+- `/metrics` cache observability endpoint
+- CORS allowlist, payload validation, 25s upstream timeouts, dynamic date injection
+- `/health` endpoint, version + latency metadata
 
 ---
 
 ## 📡 API Reference
 
-The Cloudflare Worker exposes 2 endpoints:
-
 ### `GET /health`
-
-Returns the worker's operational status.
 
 ```bash
 curl https://voyageflow.james75x2.workers.dev/health
 ```
+```json
+{ "status": "ok", "service": "voyageflow-worker", "version": "2.4.0", "timestamp": "..." }
+```
 
-Response:
+### `GET /metrics` (Week 5.1)
+
+```bash
+curl https://voyageflow.james75x2.workers.dev/metrics
+```
 ```json
 {
-  "status": "ok",
   "service": "voyageflow-worker",
   "version": "2.4.0",
-  "timestamp": "2026-07-23T05:30:20.249Z"
+  "cache_hits": 42,
+  "cache_misses": 18,
+  "total_rag_requests": 60,
+  "cache_hit_rate": 0.7,
+  "timestamp": "..."
 }
 ```
 
 ### `POST /` — Chat mode (default)
 
-Main conversational endpoint. When `mode` is omitted or not `"rag"`, the Worker runs the original itinerary/booking flow.
+```bash
+curl -X POST https://voyageflow.james75x2.workers.dev/ \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","parts":[{"text":"Plan a 5-day trip to Tokyo for 2 adults in December."}]}]}'
+```
+
+### `POST /` — RAG mode (v2.4.0)
 
 ```bash
 curl -X POST https://voyageflow.james75x2.workers.dev/ \
   -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "user", "parts": [{"text": "Plan a 5-day trip to Tokyo for 2 adults in December."}]}
-    ]
-  }'
+  -d '{"mode":"rag","messages":[{"role":"user","parts":[{"text":"What booking links can VoyageFlow generate?"}]}]}'
 ```
 
-Success response (200):
+RAG success response (200):
 ```json
 {
-  "reply": "…luxury itinerary + embedded JSON booking block…",
-  "meta": { "model": "gemini-2.5-flash", "version": "2.4.0", "latency_ms": 842 }
-}
-```
-
-### `POST /` — RAG mode *(v2.4.0)*
-
-Set `mode: "rag"` to route through hybrid retrieval + reranker + citation-enforced generation.
-
-```bash
-curl -X POST https://voyageflow.james75x2.workers.dev/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mode": "rag",
-    "messages": [
-      {"role": "user", "parts": [{"text": "What booking links can VoyageFlow generate?"}]}
-    ]
-  }'
-```
-
-Success response (200) *(v2.4.0 — includes reranker fields)*:
-```json
-{
-  "answer_markdown": "VoyageFlow generates structured booking links... [voyageflow-overview::003]",
-  "citations": [
-    { "claim": "...", "chunk_ids": ["voyageflow-overview::003"] }
-  ],
+  "answer_markdown": "VoyageFlow generates ... [voyageflow-overview::003]",
+  "citations": [{ "claim": "...", "chunk_ids": ["voyageflow-overview::003"] }],
   "unanswered": false,
   "meta": {
     "mode": "rag",
     "model": "gemini-2.5-flash",
     "version": "2.4.0",
     "latency_ms": 5060,
+    "cache": "miss",
     "ranking_signal": "reranker",
     "retrieval_signal": "hybrid",
     "chunks_used": [
-      {
-        "chunk_id": "booking-policies::001",
-        "section": "What VoyageFlow Can Guarantee",
-        "score": 0.9434,
-        "keyword_score": 16,
-        "vector_score": 0.7631,
-        "rerank_score": 0.9992,
-        "retrieval_signal": "hybrid"
-      }
+      { "chunk_id": "booking-policies::001", "score": 0.9434, "keyword_score": 16, "vector_score": 0.7631, "rerank_score": 0.9992, "retrieval_signal": "hybrid" }
     ]
   }
 }
@@ -398,12 +333,12 @@ Success response (200) *(v2.4.0 — includes reranker fields)*:
 | `400` | Malformed payload |
 | `404` | Unknown path |
 | `405` | Wrong HTTP method |
-| `429` | Rate limited by upstream provider |
+| `429` | Rate limit exceeded, or all providers rate-limited |
 | `502` | All AI providers failed |
 
-**Payload limits:** Max 30 messages per conversation, max 8,000 characters per message.
-
-**CORS:** Locked to GitHub Pages + localhost + Codespaces preview origins.
+**Payload limits:** Max 30 messages, max 8,000 chars per message.
+**Rate limit:** 20 requests / 60s per IP.
+**CORS:** Locked to GitHub Pages + localhost origins.
 
 ---
 
@@ -411,131 +346,94 @@ Success response (200) *(v2.4.0 — includes reranker fields)*:
 
 ```text
 VoyageFlow/
-├── index.html                          # Frontend — React app with mode toggle
-├── voyageflow_backend_worker.js        # Cloudflare Worker v2.4.0
-├── wrangler.toml                       # Wrangler CLI config with [ai] binding
-├── package.json                        # Node deps (Wrangler dev)
+├── index.html                          # Frontend — React app + mode toggle + intent classifier
+├── voyageflow_backend_worker.js        # Cloudflare Worker v2.4.0 (RAG + cache + rate limit + metrics)
+├── wrangler.toml                       # Wrangler config: [ai] binding + RAG_CACHE KV namespace
+├── package.json
 ├── README.md                           # This file
 ├── LICENSE                             # MIT
 ├── data/
 │   ├── kb/                             # Curated travel knowledge base (Markdown)
 │   └── index/
 │       ├── chunks.jsonl                # Chunked KB with metadata
-│       ├── raw_docs.jsonl              # Raw doc catalog
-│       └── worker-chunks.js            # Chunks + embeddings inlined for Worker
+│       ├── raw_docs.jsonl
+│       └── worker-chunks.js            # Chunks + embeddings inlined for the Worker
 ├── src/rag/
 │   ├── ingest-and-chunk.mjs            # KB ingestion
 │   ├── retrieve.mjs                    # Keyword retriever (local dev)
 │   └── answer-with-context.mjs         # Worker mode:rag primary, local fallback
 ├── evals/
-│   ├── eval-data.json                  # 15 test cases (semantic + injection + OOS)
-│   ├── eval.mjs                        # Eval harness with failure categorization
+│   ├── eval-data.json                  # 15 test cases
+│   ├── eval.mjs                        # Eval harness w/ failure categorization + pipeline telemetry
 │   └── eval-report*.json               # Archived reports per week
 ├── scripts/
-│   ├── embed-chunks.mjs                # Batch-generate embeddings via Cloudflare AI
+│   ├── embed-chunks.mjs                # Batch-generate embeddings
 │   └── build-worker-chunks.mjs         # Rebuild worker-chunks.js
 └── docs/
-    ├── screenshots/                    # Product screenshots
-    └── architecture.png                # Architecture diagram
+    ├── screenshots/
+    └── architecture.png
 ```
 
-Deployed via **GitHub Pages** from `main`. Backend runs on **Cloudflare Workers** at `voyageflow.james75x2.workers.dev` via **Wrangler CLI**.
+Deployed via **GitHub Pages** (frontend) + **Cloudflare Workers** via Wrangler CLI (backend).
 
 ---
 
 ## 💻 Local Development
 
-### Test the frontend locally
-
+**Frontend:**
 ```bash
 git clone https://github.com/james75x2-design/VoyageFlow.git
 cd VoyageFlow
-python -m http.server 5500
+python -m http.server 5500   # http://localhost:5500
 ```
 
-Then open `http://localhost:5500`.
-
-### Test the worker locally with Wrangler
-
+**Worker (Wrangler dev):**
 ```bash
 npm install
 npx wrangler login
-npx wrangler dev
+npx wrangler dev             # http://localhost:8787
 ```
 
-Worker runs on `http://localhost:8787`.
-
-### Run the RAG evaluation harness
-
+**Eval harness:**
 ```bash
 node evals/eval.mjs
-```
-
-Output prints per-test results + pipeline/signal breakdowns and writes a full report to `evals/eval-report.json`.
-
-### Rebuild the embedded knowledge base
-
-```bash
-node src/rag/ingest-and-chunk.mjs
-node scripts/embed-chunks.mjs
-node scripts/build-worker-chunks.mjs
-npx wrangler deploy
 ```
 
 ---
 
 ## ⚡ Deployment Guide
 
-### Step 1 — Deploy the Cloudflare Worker
-
-**Wrangler CLI (recommended):**
-
+### 1. Deploy the Worker (Wrangler CLI)
 ```bash
 npm install --save-dev wrangler
 npx wrangler login
-npx wrangler secret put GEMINI_API_KEY   # from https://aistudio.google.com
-npx wrangler secret put GROQ_API_KEY     # from https://console.groq.com
+npx wrangler kv namespace create RAG_CACHE   # bind id in wrangler.toml
+npx wrangler secret put GEMINI_API_KEY       # from https://aistudio.google.com
+npx wrangler secret put GROQ_API_KEY         # from https://console.groq.com
 npx wrangler deploy
 ```
+Verify: `curl https://<your-worker>.workers.dev/health`
 
-Verify:
-```bash
-curl https://<your-worker>.workers.dev/health
-```
+### 2. Configure the frontend
+Update `WORKER_URL` near the top of the `<script>` in `index.html`, and add your origin to `ALLOWED_ORIGINS` in the worker.
 
-### Step 2 — Configure the Frontend
+### 3. Deploy the frontend
+Push to `main` — GitHub Pages picks up changes automatically.
 
-Update the `WORKER_URL` constant near the top of `<script>` in `index.html`:
-
-```javascript
-const WORKER_URL = 'https://your-worker-subdomain.workers.dev/';
-```
-
-Also update `ALLOWED_ORIGINS` in the worker.
-
-### Step 3 — Deploy the Frontend
-
-Push to `main`. GitHub Pages picks up changes automatically.
-
-### Step 4 — Configure Affiliate / Partner IDs *(Optional)*
-
-Open `createBookingDemandCard()` in `index.html` and replace placeholder IDs:
-
-- `BOOKING_AID` — [Booking.com Affiliate Partner Hub](https://partners.booking.com)
-- `GYG_PARTNER_ID` — [GetYourGuide Partner Program](https://partner.getyourguide.com)
-- `VISITORS_COVERAGE_ID` — [VisitorsCoverage Partners](https://www.visitorscoverage.com)
+### 4. (Optional) Affiliate IDs
+Set `BOOKING_AID`, `GYG_PARTNER_ID`, `VISITORS_COVERAGE_ID` in `createBookingDemandCard()`.
 
 ---
 
 ## 🔒 Security & Privacy
 
-- API keys stored as encrypted Cloudflare Worker secrets; never exposed to the frontend.
-- All AI calls proxied through the Cloudflare Worker.
-- No user conversation data stored server-side. Cookies only store the last destination string, locally.
-- CORS locked to an origin allowlist (not `*`).
-- Payload size limits protect against abuse.
-- **RAG citation enforcement** — hallucinated chunk IDs filtered against retrieved set.
-- **Prompt injection defense** — verified in eval `vf-eval-006`.
+- API keys in encrypted Cloudflare Worker secrets; never exposed to the frontend
+- All AI calls proxied through the Worker
+- No server-side user data; cookies only store the last destination locally
+- CORS locked to an origin allowlist (not `*`)
+- Payload size limits + **per-IP rate limiting** protect against abuse
+- **RAG citation enforcement** — hallucinated chunk IDs filtered
+- **Prompt-injection defense** — verified via eval `vf-eval-006`
 
 ---
 
@@ -543,43 +441,45 @@ Open `createBookingDemandCard()` in `index.html` and replace placeholder IDs:
 
 | Layer | Technology |
 |---|---|
-| Frontend | Vanilla HTML + CSS + JavaScript (no framework, no build step) |
+| Frontend | Vanilla HTML + CSS + JavaScript (no build step) |
 | Backend | Cloudflare Workers (ES Module) |
 | Deploy | Wrangler CLI + `wrangler.toml` |
 | AI Primary | Google Gemini 2.5 Flash |
 | AI Fallback | Groq (gpt-oss-120b → llama-3.3-70b-versatile) |
-| RAG Retrieval | Hybrid (keyword + vector cosine similarity) with cross-encoder reranker |
-| Embedding Model | `@cf/baai/bge-small-en-v1.5` (384-dim, Cloudflare Workers AI) |
-| Reranker Model | `@cf/baai/bge-reranker-base` (Cloudflare Workers AI) |
-| Eval Harness | Node.js — per-test scoring + failure categorization + pipeline telemetry |
-| Hosting | GitHub Pages (frontend) + Cloudflare Workers (backend) |
-| Memory | HTTP cookies (client-side, last destination only) |
-| Booking Partners | Booking.com, Google Flights, GetYourGuide, VisitorsCoverage |
+| RAG Retrieval | Hybrid (keyword + vector) + cross-encoder reranker |
+| Embedding Model | `@cf/baai/bge-small-en-v1.5` (384-dim) |
+| Reranker Model | `@cf/baai/bge-reranker-base` |
+| Cache / Counters | Cloudflare KV (`RAG_CACHE`) |
+| Eval Harness | Node.js — scoring + failure categorization + telemetry |
+| Hosting | GitHub Pages + Cloudflare Workers |
 
 ---
 
 ## 🗺️ Roadmap
 
 **Completed**
-- [x] Screenshots + architecture diagram in `docs/`
-- [x] Evaluation harness for retrieval + answer quality
+- [x] Screenshots + architecture diagram
+- [x] Evaluation harness (retrieval + answer quality)
 - [x] RAG mode with citation enforcement (v2.2.0)
-- [x] Two-mode UI (Plan / Ask) with mode toggle (v2.2.0)
-- [x] Wrangler CLI deploy pipeline
-- [x] **Hybrid retrieval — keyword + vector fusion (v2.3.0, Week 3)**
-- [x] **Cross-encoder reranker — `@cf/baai/bge-reranker-base` (v2.4.0, Week 4)**
-- [x] **Eval-to-production parity — pipeline + signal telemetry (v2.4.0, Week 4)**
-- [x] **Failure categorization — retrieval / generation / grounding / unanswered_mismatch (v2.4.0, Week 4)**
+- [x] Two-mode UI + mode toggle (v2.2.0)
+- [x] Hybrid retrieval — keyword + vector fusion (v2.3.0, Week 3)
+- [x] Cross-encoder reranker (v2.4.0, Week 4)
+- [x] Eval-to-production parity + pipeline telemetry (Week 4)
+- [x] Failure categorization (Week 4)
+- [x] Intent classifier — auto mode routing (Week 5)
+- [x] KV response caching (Week 5)
+- [x] Cache hardening: KB-versioned + hashed keys, skip refusals (Week 5.1)
+- [x] Per-IP rate limiting (Week 5.1)
+- [x] `/metrics` cache observability endpoint (Week 5.1)
 
-**In progress / upcoming**
-- [ ] Intent classifier — auto-route between chat and RAG based on query
-- [ ] Real-time flight prices via Duffel or Kiwi.com Tequila API
-- [ ] Multi-city trip planning support
-- [ ] Saved itineraries / trip history (via localStorage)
+**Upcoming**
+- [ ] Real-time flight prices via Kiwi.com Tequila / Duffel API
+- [ ] Streaming responses for faster perceived latency on cache misses
+- [ ] Hermetic eval mode for CI (mock Worker responses)
+- [ ] Multi-city trip planning
+- [ ] Saved itineraries / trip history (localStorage)
 - [ ] Currency conversion in the booking desk
-- [ ] Broader IATA-code map for country-level destinations
-- [ ] Streaming responses for faster perceived latency
-- [ ] Response caching in Cloudflare KV for repeated prompts
+- [ ] KB expansion (e.g. travel-insurance chunk)
 - [ ] MCP integration for enterprise workflow connectivity
 
 ---
@@ -588,27 +488,20 @@ Open `createBookingDemandCard()` in `index.html` and replace placeholder IDs:
 
 | Version | Highlights |
 |---|---|
-| **v2.4.0** *(Week 4)* | **Cross-encoder reranker** (`@cf/baai/bge-reranker-base`) refines top-20 hybrid candidates to top-5. `chunks_used` includes `rerank_score` + `keyword_score` + `vector_score` + `retrieval_signal`. `meta` includes `ranking_signal` + `retrieval_signal`. Graceful fallback to hybrid_fusion if reranker fails. `answer-with-context.mjs` prefers Worker `mode:rag` (backward compatible via `USE_WORKER_RAG=false`). `eval.mjs` reports `pipelines_used`, `retrieval_signals`, `ranking_signals`, `failure_categories`. **100% eval pass rate.** |
-| **v2.3.0** *(Week 3)* | **Hybrid search** — Cloudflare Workers AI binding, pre-computed 384-dim embeddings for 12 chunks, keyword + vector fusion with normalized scores. Graceful fallback to keyword-only if AI binding call fails. |
-| **v2.2.0** | **RAG mode** (`mode: "rag"` branch) with embedded 12 travel chunks, citation enforcement, prompt-injection defense, out-of-scope refusal, Wrangler CLI deploy migration. |
+| **v2.4.0** (Week 4 + 5 + 5.1) | Cross-encoder reranker (`@cf/baai/bge-reranker-base`) on top-20 hybrid candidates; `chunks_used` includes `rerank_score`. Eval-to-production parity + failure categorization + pipeline telemetry. Intent classifier auto-routing (classify-on-send, manual lock). KV response caching (KB-versioned SHA-256 keys, skips refusals, 1-hour TTL). Per-IP rate limiting (20/60s → 429). `/metrics` endpoint (cache hit-rate). 100% eval pass rate. |
+| **v2.3.0** (Week 3) | Hybrid search — Cloudflare Workers AI binding, 384-dim embeddings for 12 chunks, keyword + vector fusion. Graceful fallback to keyword-only. |
+| **v2.2.0** | RAG mode (`mode: "rag"`) with embedded chunks, citation enforcement, prompt-injection defense, out-of-scope refusal, Wrangler CLI migration. |
 | **v2.1.1** | Proper log severity levels, trailing-slash tolerance on `/health`, stricter GET routing |
 | **v2.1.0** | `/health` endpoint, latency + version metadata, CORS allowlist, payload limits, structured logging |
-| **v2.0.0** | Real Groq model IDs, dynamic date injection, message-shape validation, upstream timeouts, rate-limit surfacing |
+| **v2.0.0** | Real Groq model IDs, dynamic date injection, message validation, upstream timeouts, rate-limit surfacing |
 | **v1.0.0** | Initial dual-engine router (Gemini primary + Groq fallback) |
-
-### Week-by-week RAG evolution
-
-| Week | Ship | Impact |
-|---|---|---|
-| **Week 3** — Hybrid search | Keyword + vector fusion via Cloudflare AI embeddings | 80% → 87% eval pass rate |
-| **Week 4** — Reranker + eval parity | Cross-encoder reranker on top-20 candidates + full pipeline telemetry + failure categorization | 87% → **100%** eval pass rate (+20pp arc from Week 2 baseline) |
 
 ---
 
 ## 🔗 Related Projects
 
 **WriCoRe — Write · Code · Research** *(Live)*
-A dual-engine AI workspace with three specialized agents (Writing, Coding, Research) and grounded RAG on the Research Agent. Same architecture pattern as VoyageFlow: hybrid retrieval (`@cf/baai/bge-small-en-v1.5`) + cross-encoder reranker (`@cf/baai/bge-reranker-base`) on Cloudflare Workers. 100% eval pass rate with failure categorization and pipeline telemetry. Cross-project code reuse validated.
+A dual-engine AI workspace with three specialized agents and grounded RAG on the Research Agent. Same architecture pattern as VoyageFlow: hybrid retrieval (`@cf/baai/bge-small-en-v1.5`) + cross-encoder reranker (`@cf/baai/bge-reranker-base`) on Cloudflare Workers, 100% eval pass with failure categorization and pipeline telemetry. Cross-project code reuse validated.
 🔗 [Try WriCoRe Live](https://james75x2-design.github.io/wricore-workspace/)
 
 **AGAD — Assisted Generation of Approval Documents** *(In Development)*
@@ -621,7 +514,7 @@ An AI-powered tool helping Filipino patients and their families navigate hospita
 **James Earl C. Felipe**
 AI Solutions Designer · Enterprise IT Applications Specialist
 
-Focused on AI agent development, workflow automation, and enterprise support platforms. VoyageFlow is part of a broader portfolio exploring conversational AI, retrieval-augmented generation, cross-encoder reranking, evaluation harnesses with failure categorization, and multi-provider LLM routing.
+Focused on AI agent development, retrieval-augmented generation, cross-encoder reranking, evaluation harnesses with failure categorization, response caching, rate limiting, and multi-provider LLM routing.
 
 🔗 https://linkedin.com/in/james-earl-felipe-13359665 · 📧 james75x2@gmail.com
 
@@ -630,10 +523,7 @@ Focused on AI agent development, workflow automation, and enterprise support pla
 ## 📄 License
 
 MIT License — Copyright (c) 2026 James Earl C. Felipe.
-
-Free to use, modify, and share with attribution.
-
-See ./LICENSE for the full text.
+Free to use, modify, and share with attribution. See ./LICENSE for full text.
 
 ---
 
