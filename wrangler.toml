@@ -11,3 +11,7 @@ enabled = true
 # Cloudflare Workers AI — for on-demand query embeddings (Week 3 hybrid search)
 [ai]
 binding = "AI"
+
+[[kv_namespaces]]
+binding = "RAG_CACHE"
+id = "fbddbf9a526f4297b0dbe4c7c6422424"
