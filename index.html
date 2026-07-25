@@ -900,10 +900,13 @@
     let conversationHistory = [];
     let currentMode = 'chat';
     let userLockedMode = false;   // true once the user manually clicks a toggle
-    let intentDebounceTimer = null;
 
     // ── Week 5: Intent Classifier ────────────────────────────────────────────
-    // Regex-first heuristic. Returns 'rag', 'chat', or null (ambiguous).
+    // Regex-based heuristic returning 'rag' | 'chat' | null (ambiguous).
+    // Deliberately regex-only: VoyageFlow's two modes (plan-trip vs ask-question)
+    // are lexically distinct enough that regex achieves high accuracy without the
+    // latency/cost of an LLM classification call. An LLM fallback tier could be
+    // added later for genuinely ambiguous queries if usage data shows a need.
     function classifyIntent(text) {
       const t = (text || "").toLowerCase().trim();
       if (t.length < 3) return null;
@@ -1220,15 +1223,8 @@
     }
 
     chatInput.addEventListener('input', () => {
-      // Week 5: auto-classify intent (debounced) unless user locked the mode.
-      if (!userLockedMode) {
-        clearTimeout(intentDebounceTimer);
-        const text = chatInput.value;
-        intentDebounceTimer = setTimeout(() => {
-          const detected = classifyIntent(text);
-          if (detected) applyDetectedMode(detected);
-        }, 400);
-      }
+      // Week 5.1: intent classification moved to send-time (handleFormSubmit)
+      // to avoid jarring mid-typing toggle switches + screen-reader noise.
       const len = chatInput.value.length;
       charCounter.textContent = `${len}/4000`;
       sendBtn.disabled = len === 0 || isRequestActive;
@@ -1288,6 +1284,13 @@
     async function handleFormSubmit() {
       const userText = chatInput.value.trim();
       if (!userText || isRequestActive) return;
+
+      // Week 5.1: classify intent once, at send time, from the complete query
+      // (unless the user manually locked the mode via the toggle).
+      if (!userLockedMode) {
+        const detected = classifyIntent(userText);
+        if (detected) applyDetectedMode(detected);
+      }
 
       if (WORKER_URL === 'YOUR_CLOUDFLARE_WORKER_URL_HERE' || !WORKER_URL) {
         showError("Please configure your Cloudflare Worker URL in the source code of index.html");
