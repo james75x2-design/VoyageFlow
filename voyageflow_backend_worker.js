@@ -1,4 +1,14 @@
 import { TRAVEL_CHUNKS, EMBEDDING_MODEL, EMBEDDING_DIMS } from "./data/index/worker-chunks.js";
+import { runToolLoop } from "./src/mcp/tool-loop.mjs";
+import { TOOL_DEFS, executeTool } from "./src/mcp/tools.mjs";
+import {
+  toolsForGemini,
+  contentsForGemini,
+  parseGeminiResponse,
+  toolsForGroq,
+  messagesForGroq,
+  parseGroqResponse
+} from "./src/mcp/adapters.mjs";
 
 /**
  * VoyageFlow Serverless Cloudflare Worker — AI Gateway Router (v2.1.1)
@@ -784,7 +794,9 @@ export default {
 
     // ── Attempt 1: Gemini primary ────────────────────────────────────────────
     try {
-      rawContent = await callGemini(messages, systemPrompt, env);
+      rawContent = mode === "rag"
+        ? await callGemini(messages, systemPrompt, env)
+        : await callGeminiWithToolLoop(messages, systemPrompt, env);
       usedModel = "gemini-2.5-flash";
     } catch (geminiError) {
       logEvent("warn", "gemini_failed", { error: geminiError.message });
@@ -797,7 +809,9 @@ export default {
       // ── Attempt 2+: Groq fallback chain ────────────────────────────────────
       for (const model of GROQ_FALLBACK_MODELS) {
         try {
-          rawContent = await callGroq(messages, model, systemPrompt, env);
+          rawContent = mode === "rag"
+            ? await callGroq(messages, model, systemPrompt, env)
+            : await callGroqWithToolLoop(messages, model, systemPrompt, env);
           usedModel = model;
           logEvent("info", "groq_fallback_succeeded", { model });
           rateLimited = false;
@@ -903,6 +917,117 @@ export default {
     }, rateLimited ? 429 : 502, corsHeaders);
   }
 };
+
+
+// ─── Week 7.1: Tool Loop Helpers (stub transit tool) ──────────────────────────
+function normalizeMessagesForToolLoop(messages) {
+  return messages.map(msg => ({
+    role: msg.role === "model" ? "assistant" : msg.role,
+    content: msg.parts?.[0]?.text || ""
+  }));
+}
+
+async function callGeminiWithToolLoop(messages, systemPrompt, env) {
+  const loopMessages = normalizeMessagesForToolLoop(messages);
+  const result = await runToolLoop({
+    messages: loopMessages,
+    tools: TOOL_DEFS,
+    executeTool,
+    ctx: { env },
+    maxRounds: 4,
+    logEvent,
+    callModel: async (workingMessages, tools) => {
+      const data = await callGeminiToolTurn(workingMessages, tools, systemPrompt, env);
+      return parseGeminiResponse(data);
+    }
+  });
+
+  if (result.error) {
+    throw new Error(`Gemini tool loop failed: ${result.error}`);
+  }
+  return result.finalText;
+}
+
+async function callGroqWithToolLoop(messages, model, systemPrompt, env) {
+  const loopMessages = normalizeMessagesForToolLoop(messages);
+  const result = await runToolLoop({
+    messages: loopMessages,
+    tools: TOOL_DEFS,
+    executeTool,
+    ctx: { env },
+    maxRounds: 4,
+    logEvent,
+    callModel: async (workingMessages, tools) => {
+      const data = await callGroqToolTurn(workingMessages, tools, model, systemPrompt, env);
+      return parseGroqResponse(data);
+    }
+  });
+
+  if (result.error) {
+    throw new Error(`Groq tool loop failed on ${model}: ${result.error}`);
+  }
+  return result.finalText;
+}
+
+async function callGeminiToolTurn(workingMessages, tools, systemPrompt, env) {
+  if (!env.GEMINI_API_KEY) {
+    throw new Error("Configuration missing: GEMINI_API_KEY");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: contentsForGemini(workingMessages),
+      tools: toolsForGemini(tools),
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 4096
+      }
+    })
+  }, UPSTREAM_TIMEOUT_MS);
+
+  if (response.status === 429) {
+    throw new Error("Gemini RATE_LIMIT (429)");
+  }
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`Gemini API Error (${response.status}): ${errBody}`);
+  }
+  return response.json();
+}
+
+async function callGroqToolTurn(workingMessages, tools, model, systemPrompt, env) {
+  if (!env.GROQ_API_KEY) {
+    throw new Error("Configuration missing: GROQ_API_KEY");
+  }
+
+  const response = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: messagesForGroq(workingMessages, systemPrompt),
+      tools: toolsForGroq(tools),
+      tool_choice: "auto",
+      temperature: 0.2,
+      max_tokens: 4096
+    })
+  }, UPSTREAM_TIMEOUT_MS);
+  if (response.status === 429) {
+    throw new Error(`Groq RATE_LIMIT on ${model} (429)`);
+  }
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`Groq Error on ${model} (${response.status}): ${errBody}`);
+  }
+  return response.json();
+}
 
 // ─── Primary Engine: Google Gemini ────────────────────────────────────────────
 async function callGemini(messages, systemPrompt, env) {
