@@ -10,7 +10,7 @@ import { getTransitInfo } from "../../transit.mjs";
 // TODO: set a real contact address before shipping publicly.
 const MOTIS_GEOCODE = "https://api.transitous.org/api/v1/geocode";
 const MOTIS_UA =
-  "VoyageFlow/0.1 (+https://github.com/james75x2-design/VoyageFlow; contact: james.earl.felipe@gmail.com)";
+  "VoyageFlow/0.1 (+https://github.com/james75x2-design/VoyageFlow)";
 
 // Region-aware plausibility guard.
 // This tool is for two places in the same region (day-trip sequencing). An
