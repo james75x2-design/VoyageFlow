@@ -1,3 +1,13 @@
+/**
+ * transit.js — VoyageFlow Week 7.2
+ * Real Transitland-backed transit evidence between two places, no fabrication.
+ * Contract preserved for Week 7.1 tool loop + Week 7.4 KV cache:
+ *   { origin, destination, distance, duration, frequency, ... }
+ * Tiers: distance REAL (haversine) | frequency REAL (departures headway) |
+ *        duration ESTIMATE (labeled) | no data -> no_coverage -> caller falls back.
+ * Endpoints (v2 REST): /stops?lat=&lon=&radius= , /stops/{id}/departures
+ * Auth header: { apikey: env.TRANSITLAND_API_KEY }. Geometry order is [lon,lat].
+ */
 const TL_BASE = "https://transit.land/api/v2/rest";
 const MODE_SPEED_KMH = { 0: 20, 1: 32, 2: 45, 3: 18, 4: 25, default: 22 };
 const MODE_NAME = { 0: "tram", 1: "subway", 2: "rail", 3: "bus", 4: "ferry" };
@@ -42,6 +52,8 @@ async function stopFrequency(stopId, apikey, serviceDate, startHHMM = "08:00:00"
   else if (Array.isArray(j.departures)) deps = j.departures;
   const count = deps.length;
   const headway = count > 0 ? Math.round(120 / count) : null;
+  // Best-effort mode: /stops search omits route_stops, so derive route_type
+  // from the departures' trip.route (defensive; falls back to null if absent).
   const rtCounts = {};
   for (const d of deps) {
     const rt = d && d.trip && d.trip.route && d.trip.route.route_type;
@@ -72,6 +84,7 @@ async function getTransitInfo(args, ctx) {
     }
     const distanceKm = +haversineKm(oStop, dStop).toFixed(1);
     const freq = await stopFrequency(oStop.id, apikey, serviceDate);
+    // Prefer stop's route_type; fall back to departures-derived; else default.
     const rt = oStop.route_type ?? freq.route_type;
     const speed = MODE_SPEED_KMH[rt] ?? MODE_SPEED_KMH.default;
     const durationMin = Math.max(1, Math.round((distanceKm / speed) * 60));
