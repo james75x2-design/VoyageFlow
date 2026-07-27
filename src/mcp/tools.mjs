@@ -106,23 +106,66 @@ async function geocode(place) {
   return { lat: Number(p.lat), lon: Number(p.lon), areas: p.areas || [] };
 }
 
+// Walking layer. GTFS/transit feeds never contain a "walk" mode, so short hops
+// would otherwise be reported as bus/rail even when walking is clearly better.
+// We add a LABELED walking estimate from straight-line distance (detour-adjusted)
+// plus a recommendation comparing walking against transit + expected wait.
+const WALK_KMH = 4.0;              // effective speed on straight-line distance (accounts for street detours)
+const WALK_MAX_KM = 2.0;           // at/under this (~30 min), walking is a realistic option
+const WALK_REPORT_KM = 3.0;        // include a walk estimate up to here (beyond is absurd)
+const TRANSIT_OVERHEAD_MIN = 10;   // real transit friction our ride estimate ignores:
+                                   // walk-to-stop + board + walk-from-stop. Added when
+                                   // comparing vs walking so short hops correctly favor walking.
+const WALK_TOLERANCE_MIN = 8;      // walking has no wait/transfer/platform stress, so recommend
+                                   // it even when a few minutes slower than transit. Recommend
+                                   // walking if walk_min <= transitTotal + this tolerance.
+
+// Returns additive walking fields for a given distance (+ optional transit comparison).
+function walkFields(distanceKm, transitMin, frequencyMin) {
+  if (distanceKm == null) {
+    return { walkable: false, walk_min: null, walk_confidence: 'none', recommend_walk: false };
+  }
+  const walk_min = distanceKm <= WALK_REPORT_KM
+    ? Math.max(1, Math.round((distanceKm / WALK_KMH) * 60))
+    : null;
+  const walkable = distanceKm <= WALK_MAX_KM;
+  // Door-to-door transit ~= ride + ~half the headway (expected wait) + fixed
+  // access/egress overhead (walk-to-stop, board, walk-from-stop). Default wait
+  // 8 min if headway unknown. This makes short hops correctly favor walking.
+  const wait = frequencyMin != null ? frequencyMin / 2 : 8;
+  const transitTotal = transitMin != null ? transitMin + wait + TRANSIT_OVERHEAD_MIN : Infinity;
+  // Recommend walking if it's faster OR within a small tolerance (no wait/transfer stress).
+  const recommend_walk = walkable && walk_min != null && walk_min <= transitTotal + WALK_TOLERANCE_MIN;
+  return {
+    walkable,
+    walk_min,                                        // ESTIMATE (labeled), minutes on foot
+    walk_confidence: walk_min != null ? 'estimate' : 'none',
+    recommend_walk                                   // true when walking beats transit+wait for a short hop
+  };
+}
+
 // Map a successful getTransitInfo result to the tool's stable output contract.
 function toContract(args, r) {
   const mode = (r.duration_basis || "transit").split(" ")[0];
+  const w = walkFields(r.distance, r.duration, r.frequency);
   return {
     origin: args.origin,
     destination: args.destination,
     distance_km: r.distance,          // REAL (haversine)
     transit_min: r.duration,          // ESTIMATE (labeled below)
-    mode,                             // derived from dominant departures route_type
+    mode,                             // transit mode from dominant departures route_type
     frequency_min: r.frequency,       // REAL avg headway (may be null)
+    walkable: w.walkable,             // short enough to walk (<= 2 km)
+    walk_min: w.walk_min,             // ESTIMATE minutes on foot (null if > 3 km)
+    recommend_walk: w.recommend_walk, // walking beats transit+wait for this hop
     confidence: {
       distance: r.distance_confidence,
       duration: r.duration_confidence,   // 'estimate'
-      frequency: r.frequency_confidence
+      frequency: r.frequency_confidence,
+      walk: w.walk_confidence
     },
     source: 'transitland',
-    note: `distance=real; duration=${r.duration_confidence} (${r.duration_basis}); frequency=${r.frequency_confidence} (${r.frequency_sample}). ${r.attribution}`
+    note: `distance=real; duration=${r.duration_confidence} (${r.duration_basis}); frequency=${r.frequency_confidence} (${r.frequency_sample}); walk=${w.walk_confidence}${w.walk_min != null ? ` (~${w.walk_min} min on foot)` : ''}${w.recommend_walk ? ', walking recommended for this short hop' : ''}. ${r.attribution}`
   };
 }
 
@@ -157,7 +200,12 @@ export async function executeTool(name, args, ctx = {}) {
     const destination = simplify(args.destination);
     const hit = STUB_TRANSIT[key(origin, destination)] || STUB_TRANSIT[key(destination, origin)];
     if (hit) {
-      return { origin: args.origin, destination: args.destination, ...hit, source: 'stub' };
+      const w = walkFields(hit.distance_km, hit.transit_min, null);
+      return {
+        origin: args.origin, destination: args.destination, ...hit,
+        walkable: w.walkable, walk_min: w.walk_min, recommend_walk: w.recommend_walk,
+        source: 'stub'
+      };
     }
 
     // --- Tier 3: honest null (no data anywhere) ---
