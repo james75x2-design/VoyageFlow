@@ -7,7 +7,7 @@
 import { getTransitInfo } from "../../transit.mjs";
 
 // MOTIS/Transitous requires a descriptive User-Agent (app + version + contact).
-// TODO: set a real contact address before shipping publicly.
+// contact URL in the User-Agent is sufficient per Transitous policy.
 const MOTIS_GEOCODE = "https://api.transitous.org/api/v1/geocode";
 const MOTIS_UA =
   "VoyageFlow/0.1 (+https://github.com/james75x2-design/VoyageFlow)";
