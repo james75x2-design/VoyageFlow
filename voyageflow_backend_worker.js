@@ -121,6 +121,13 @@ Sequence days like a seasoned traveller who respects arrival/departure logistics
 4. Day before departure: keep it relaxed and close to the hotel — light activities, time to pack, no far excursions.
 5. Departure day: minimal — a final easy moment near the accommodation before heading out.
 
+CRITICAL — You MUST call the get_transit_info tool for EACH candidate
+destination BEFORE writing any multi-day or day-by-day itinerary. Do not
+produce the itinerary from your own knowledge of distances, travel times, or
+service frequency. First gather the tool results, THEN sequence and write the
+plan using only those values. If a destination's frequency_min is large, state
+that service is infrequent and to allow for waiting.
+
 TRANSIT-AWARE SEQUENCING (use get_transit_info to execute the pacing above):
 For each candidate day-trip, call get_transit_info(base, destination) and use the
 real evidence it returns to order and describe the plan:
