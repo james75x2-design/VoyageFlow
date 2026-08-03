@@ -962,17 +962,27 @@ function normalizeMessagesForToolLoop(messages) {
   }));
 }
 
+// Itinerary turns force tool calls; clarify turns (1 user msg) do not.
+function isItineraryTurn(loopMessages) {
+  return loopMessages.filter(m => m.role === 'user').length >= 2;
+}
+
 async function callGeminiWithToolLoop(messages, systemPrompt, env) {
   const loopMessages = normalizeMessagesForToolLoop(messages);
+  const itinerary = isItineraryTurn(loopMessages);
+  const maxRounds = 6;
+  let round = 0;
   const result = await runToolLoop({
     messages: loopMessages,
     tools: TOOL_DEFS,
     executeTool,
     ctx: { env },
-    maxRounds: 4,
+    maxRounds,
     logEvent,
     callModel: async (workingMessages, tools) => {
-      const data = await callGeminiToolTurn(workingMessages, tools, systemPrompt, env);
+      round++;
+      const force = itinerary && round < maxRounds;
+      const data = await callGeminiToolTurn(workingMessages, tools, systemPrompt, env, force);
       return parseGeminiResponse(data);
     }
   });
@@ -985,15 +995,20 @@ async function callGeminiWithToolLoop(messages, systemPrompt, env) {
 
 async function callGroqWithToolLoop(messages, model, systemPrompt, env) {
   const loopMessages = normalizeMessagesForToolLoop(messages);
+  const itinerary = isItineraryTurn(loopMessages);
+  const maxRounds = 6;
+  let round = 0;
   const result = await runToolLoop({
     messages: loopMessages,
     tools: TOOL_DEFS,
     executeTool,
     ctx: { env },
-    maxRounds: 4,
+    maxRounds,
     logEvent,
     callModel: async (workingMessages, tools) => {
-      const data = await callGroqToolTurn(workingMessages, tools, model, systemPrompt, env);
+      round++;
+      const force = itinerary && round < maxRounds;
+      const data = await callGroqToolTurn(workingMessages, tools, model, systemPrompt, env, force);
       return parseGroqResponse(data);
     }
   });
@@ -1004,7 +1019,7 @@ async function callGroqWithToolLoop(messages, model, systemPrompt, env) {
   return result.finalText;
 }
 
-async function callGeminiToolTurn(workingMessages, tools, systemPrompt, env) {
+async function callGeminiToolTurn(workingMessages, tools, systemPrompt, env, forceTools = false) {
   if (!env.GEMINI_API_KEY) {
     throw new Error("Configuration missing: GEMINI_API_KEY");
   }
@@ -1017,6 +1032,7 @@ async function callGeminiToolTurn(workingMessages, tools, systemPrompt, env) {
       system_instruction: { parts: [{ text: systemPrompt }] },
       contents: contentsForGemini(workingMessages),
       tools: toolsForGemini(tools),
+      tool_config: { function_calling_config: { mode: forceTools ? "ANY" : "AUTO" } },
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: 4096
@@ -1034,7 +1050,7 @@ async function callGeminiToolTurn(workingMessages, tools, systemPrompt, env) {
   return response.json();
 }
 
-async function callGroqToolTurn(workingMessages, tools, model, systemPrompt, env) {
+async function callGroqToolTurn(workingMessages, tools, model, systemPrompt, env, forceTools = false) {
   if (!env.GROQ_API_KEY) {
     throw new Error("Configuration missing: GROQ_API_KEY");
   }
@@ -1049,7 +1065,7 @@ async function callGroqToolTurn(workingMessages, tools, model, systemPrompt, env
       model,
       messages: messagesForGroq(workingMessages, systemPrompt),
       tools: toolsForGroq(tools),
-      tool_choice: "auto",
+      tool_choice: forceTools ? "required" : "auto",
       temperature: 0.2,
       max_tokens: 4096
     })
