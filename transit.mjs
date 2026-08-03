@@ -41,7 +41,22 @@ async function nearestStop({ lat, lon }, apikey, radius = 1000) {
     lat: Number(slat), lon: Number(slon), route_type: rt };
 }
 
-async function stopFrequency(stopId, apikey, serviceDate, startHHMM = "08:00:00", endHHMM = "10:00:00") {
+// Robust headway (minutes) from actual departure times — immune to window width
+// and the departures limit cap, unlike a fixed windowMinutes/count divisor.
+function computeHeadwayMin(deps) {
+  const mins = deps.map(d => {
+    const t = d.departure_time || (d.departure && d.departure.scheduled) || null;
+    if (!t) return null;
+    const p = String(t).split(":");
+    if (p.length < 2) return null;
+    return Number(p[0]) * 60 + Number(p[1]);
+  }).filter(x => x != null && !Number.isNaN(x)).sort((a, b) => a - b);
+  if (mins.length < 2) return null;
+  const span = mins[mins.length - 1] - mins[0];
+  return Math.max(1, Math.round(span / (mins.length - 1)));
+}
+
+async function stopFrequency(stopId, apikey, serviceDate, startHHMM = "07:00:00", endHHMM = "21:00:00") {
   const path = `/stops/${encodeURIComponent(stopId)}/departures` +
     `?service_date=${serviceDate}&start_time=${startHHMM}&end_time=${endHHMM}` +
     `&include_geometry=false&include_alerts=false&limit=100`;
@@ -51,7 +66,7 @@ async function stopFrequency(stopId, apikey, serviceDate, startHHMM = "08:00:00"
   if (stopsArr.length && Array.isArray(stopsArr[0].departures)) deps = stopsArr[0].departures;
   else if (Array.isArray(j.departures)) deps = j.departures;
   const count = deps.length;
-  const headway = count > 0 ? Math.round(120 / count) : null;
+  const headway = computeHeadwayMin(deps);
   // Best-effort mode: /stops search omits route_stops, so derive route_type
   // from the departures' trip.route (defensive; falls back to null if absent).
   const rtCounts = {};
@@ -96,7 +111,7 @@ async function getTransitInfo(args, ctx) {
       duration_basis: (MODE_NAME[rt] || "transit") + ` @ ${speed} km/h straight-line`,
       frequency: freq.headway_min,
       frequency_confidence: freq.count > 0 ? "real" : "none",
-      frequency_sample: `${freq.count} departures 08:00–10:00 on ${serviceDate}`,
+      frequency_sample: `${freq.count} departures 07:00–21:00 on ${serviceDate}`,
       attribution: "Transitland (Interline Technologies)" };
   } catch (e) {
     return { status: "error", source: "transitland", error: e.message,
