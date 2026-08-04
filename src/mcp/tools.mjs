@@ -158,6 +158,7 @@ function toContract(args, r) {
     walkable: w.walkable,             // short enough to walk (<= 2 km)
     walk_min: w.walk_min,             // ESTIMATE minutes on foot (null if > 3 km)
     recommend_walk: w.recommend_walk, // walking beats transit+wait for this hop
+    sparse_service: r.sparse_service === true, // destination stop infrequently served (>20 min headway)
     confidence: {
       distance: r.distance_confidence,
       duration: r.duration_confidence,   // 'estimate'
