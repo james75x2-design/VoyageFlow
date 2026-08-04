@@ -42,7 +42,13 @@ export async function runToolLoop({
           name: call.name,
           content: JSON.stringify(result)
         });
-        logEvent('info', 'tool_executed', { name: call.name });
+        logEvent('info', 'tool_executed', {
+          name: call.name,
+          destination: result && result.destination,
+          source: result && result.source,
+          frequency_min: result && result.frequency_min,
+          sparse_service: result && result.sparse_service
+        });
       }
       continue;
     }
