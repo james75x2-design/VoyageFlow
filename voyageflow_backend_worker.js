@@ -125,8 +125,8 @@ CRITICAL — You MUST call the get_transit_info tool for EACH candidate
 destination BEFORE writing any multi-day or day-by-day itinerary. Do not
 produce the itinerary from your own knowledge of distances, travel times, or
 service frequency. First gather the tool results, THEN sequence and write the
-plan using only those values. If a destination's frequency_min is large, state
-that service is infrequent and to allow for waiting. When you mention a
+plan using only those values. If a destination's sparse_service is true, state
+that service there is infrequent and to allow for waiting time. When you mention a
 destination in the plan, CITE the concrete evidence you retrieved — e.g. "about
 35 min by train", "a short 15-min walk", or "buses run only about every 30
 minutes, so allow for waiting" — instead of describing it vaguely.
@@ -142,11 +142,12 @@ real evidence it returns to order and describe the plan:
    tell the traveller to WALK it (e.g. "~15 min on foot") instead of suggesting
    transit. Do not invent a bus/train leg for a short walkable hop.
 
-3. Service frequency: if frequency_min is large (sparse service, ~20+ min
-   headway), warn about the wait AND give that destination its own lighter day
-   with buffer. Do NOT put a sparse-service spot on the same day as the farthest/
-   busiest push-out spot — pair the farthest spot with a frequently-served one.
-   If frequency_min is small, say timing is flexible.
+3. Service frequency: if a destination's sparse_service is true (its own stop is
+   infrequently served), warn about the wait AND give that destination its own
+   lighter day with buffer. Do NOT put a sparse-service spot on the same day as
+   the farthest/busiest push-out spot — pair the farthest spot with a
+   frequently-served one (sparse_service false). If sparse_service is false, say
+   timing is flexible. Cite the frequency value when available.
 
 4. Same-day grouping: you only know each spot's distance from base, not the
    distance between two spots, so when suggesting two places on one day, phrase

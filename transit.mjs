@@ -98,7 +98,7 @@ async function getTransitInfo(args, ctx) {
               "(KV cache -> Week 6.2 geography heuristic)." };
     }
     const distanceKm = +haversineKm(oStop, dStop).toFixed(1);
-    const freq = await stopFrequency(oStop.id, apikey, serviceDate);
+    const freq = await stopFrequency(dStop.id, apikey, serviceDate);
     // Prefer stop's route_type; fall back to departures-derived; else default.
     const rt = oStop.route_type ?? freq.route_type;
     const speed = MODE_SPEED_KMH[rt] ?? MODE_SPEED_KMH.default;
@@ -111,6 +111,9 @@ async function getTransitInfo(args, ctx) {
       duration_basis: (MODE_NAME[rt] || "transit") + ` @ ${speed} km/h straight-line`,
       frequency: freq.headway_min,
       frequency_confidence: freq.count > 0 ? "real" : "none",
+      // Sparse-service flag from the DESTINATION stop headway (>20 min = infrequent).
+      // null headway (no departures) -> false, never fabricated.
+      sparse_service: (freq.headway_min != null && freq.headway_min > 20),
       frequency_sample: `${freq.count} departures 07:00–21:00 on ${serviceDate}`,
       attribution: "Transitland (Interline Technologies)" };
   } catch (e) {
