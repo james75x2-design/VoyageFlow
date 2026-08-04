@@ -966,9 +966,16 @@ function normalizeMessagesForToolLoop(messages) {
   }));
 }
 
-// Itinerary turns force tool calls; clarify turns (1 user msg) do not.
+// Itinerary turns force tool calls; clarify/greeting turns do not.
+// Content-based intent detection: the old >=2-user-message count silently
+// failed when a user gave the whole request in one turn (concierge flow).
+// Fires on itinerary-intent phrasing OR (fallback) a multi-turn conversation.
 function isItineraryTurn(loopMessages) {
-  return loopMessages.filter(m => m.role === 'user').length >= 2;
+  const userMsgs = loopMessages.filter(m => m.role === 'user');
+  const text = userMsgs.map(m => m.content || '').join(' ').toLowerCase();
+  const intent = /\b(itinerary|day[- ]?by[- ]?day|build the (full )?(plan|itinerary)|plan (me |my |a |the )?(trip|\d+[- ]?day)|\d+[- ]?day (trip|plan)|days? in|create (an? )?(itinerary|plan))\b/.test(text);
+  const multiTurn = userMsgs.length >= 2;
+  return intent || multiTurn;
 }
 
 async function callGeminiWithToolLoop(messages, systemPrompt, env) {
