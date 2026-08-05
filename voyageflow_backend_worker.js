@@ -981,7 +981,7 @@ function isItineraryTurn(loopMessages) {
 async function callGeminiWithToolLoop(messages, systemPrompt, env) {
   const loopMessages = normalizeMessagesForToolLoop(messages);
   const itinerary = isItineraryTurn(loopMessages);
-  const maxRounds = 6;
+  const maxRounds = 2; // round 1 fetches (forced), round 2 writes — caps subrequests
   let round = 0;
   const result = await runToolLoop({
     messages: loopMessages,
@@ -1007,7 +1007,7 @@ async function callGeminiWithToolLoop(messages, systemPrompt, env) {
 async function callGroqWithToolLoop(messages, model, systemPrompt, env) {
   const loopMessages = normalizeMessagesForToolLoop(messages);
   const itinerary = isItineraryTurn(loopMessages);
-  const maxRounds = 6;
+  const maxRounds = 2; // round 1 fetches (forced), round 2 writes — caps subrequests
   let round = 0;
   const result = await runToolLoop({
     messages: loopMessages,
