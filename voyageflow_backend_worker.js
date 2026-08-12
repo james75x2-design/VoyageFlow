@@ -1,6 +1,7 @@
 import { TRAVEL_CHUNKS, EMBEDDING_MODEL, EMBEDDING_DIMS } from "./data/index/worker-chunks.js";
 import { runToolLoop } from "./src/mcp/tool-loop.mjs";
 import { TOOL_DEFS, executeTool } from "./src/mcp/tools.mjs";
+import { parseExtraction, prefetchTransit, buildTransitFacts, PLANNER_PROMPT } from "./transit-prefetch.mjs";
 import {
   toolsForGemini,
   contentsForGemini,
@@ -824,6 +825,12 @@ export default {
       systemPrompt = "You are a strict retrieval-grounded assistant. Follow the user's instructions exactly and return only valid JSON.";
     } else {
       systemPrompt = buildSystemPrompt();
+      // Week 7.3c: deterministic transit prefetch. Fetch transit ONCE and
+      // inject facts into the prompt so providers just write (no tool loop,
+      // no per-fallback refetch). Sets itineraryPrefetched on success.
+      const __pf = await maybePrefetchTransit(messages, systemPrompt, env);
+      systemPrompt = __pf.systemPrompt;
+      var itineraryPrefetched = __pf.prefetched;
     }
 
     let rawContent = null;
@@ -833,7 +840,7 @@ export default {
 
     // ── Attempt 1: Gemini primary ────────────────────────────────────────────
     try {
-      rawContent = mode === "rag"
+      rawContent = (mode === "rag" || itineraryPrefetched)
         ? await callGemini(messages, systemPrompt, env)
         : await callGeminiWithToolLoop(messages, systemPrompt, env);
       usedModel = "gemini-2.5-flash";
@@ -848,7 +855,7 @@ export default {
       // ── Attempt 2+: Groq fallback chain ────────────────────────────────────
       for (const model of GROQ_FALLBACK_MODELS) {
         try {
-          rawContent = mode === "rag"
+          rawContent = (mode === "rag" || itineraryPrefetched)
             ? await callGroq(messages, model, systemPrompt, env)
             : await callGroqWithToolLoop(messages, model, systemPrompt, env);
           usedModel = model;
@@ -976,6 +983,31 @@ function isItineraryTurn(loopMessages) {
   const intent = /\b(itinerary|day[- ]?by[- ]?day|build the (full )?(plan|itinerary)|plan (me |my |a |the )?(trip|\d+[- ]?day)|\d+[- ]?day (trip|plan)|days? in|create (an? )?(itinerary|plan))\b/.test(text);
   const multiTurn = userMsgs.length >= 2;
   return intent || multiTurn;
+}
+
+// ─── Week 7.3c: deterministic transit prefetch helper ───────────────────────
+// Returns { systemPrompt, prefetched }. On any failure, prefetched=false and the
+// original systemPrompt is returned (caller falls back to the tool-loop path).
+async function maybePrefetchTransit(messages, systemPrompt, env) {
+  try {
+    const loopMessages = normalizeMessagesForToolLoop(messages);
+    if (!isItineraryTurn(loopMessages)) return { systemPrompt, prefetched: false };
+    let userText = "";
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i] && messages[i].role === "user") { userText = (messages[i].parts && messages[i].parts[0] && messages[i].parts[0].text) || ""; break; }
+    }
+    if (!userText) return { systemPrompt, prefetched: false };
+    const planRaw = await callGemini([{ role: "user", parts: [{ text: userText }] }], PLANNER_PROMPT, env);
+    const plan = parseExtraction(planRaw);
+    if (!plan) { logEvent("info", "prefetch_skipped", { reason: "no_plan" }); return { systemPrompt, prefetched: false }; }
+    const pre = await prefetchTransit(plan.base, plan.destinations, executeTool, env);
+    const facts = buildTransitFacts(plan.base, pre);
+    logEvent("info", "prefetch_done", { base: plan.base, count: plan.destinations.length });
+    return { systemPrompt: facts + "\n\n" + systemPrompt, prefetched: true };
+  } catch (e) {
+    logEvent("warn", "prefetch_failed", { error: String(e && e.message ? e.message : e) });
+    return { systemPrompt, prefetched: false };
+  }
 }
 
 async function callGeminiWithToolLoop(messages, systemPrompt, env) {
