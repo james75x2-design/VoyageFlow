@@ -146,7 +146,14 @@
       border-color: var(--secondary-color);
       color: var(--secondary-color);
     }
-
+    .save-trip-btn {
+      margin-top: 10px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+      background: rgba(255,255,255,0.06); color: #cdd6f4;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .save-trip-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+    .save-trip-btn:disabled { opacity: 0.7; cursor: default; }
     main {
       flex: 1;
       overflow-y: auto;
@@ -808,6 +815,9 @@
           <span class="tagline">AI Travel Agent · Free</span>
         </div>
       </div>
+      <button class="btn-new-trip" id="saved-trips-btn" aria-label="View saved trips" style="margin-right:8px;">
+        💾 Saved Trips
+      </button>
       <button class="btn-new-trip" id="new-trip-btn" aria-label="Start a new search session">
         <span>Reset Search</span>
       </button>
@@ -876,7 +886,15 @@
     </footer>
 
   </div>
-
+  <div id="saved-trips-overlay" class="custom-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="saved-trips-title" style="display:none;">
+    <div class="custom-dialog" style="max-width:560px; width:92%; max-height:80vh; display:flex; flex-direction:column;">
+      <h3 id="saved-trips-title" style="margin-bottom:12px;">💾 Saved Trips</h3>
+      <div id="saved-trips-list" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;"></div>
+      <div class="dialog-buttons" style="margin-top:16px;">
+        <button type="button" id="saved-trips-close" class="btn-new-trip">Close</button>
+      </div>
+    </div>
+  </div>
   <!-- Custom Confirmation Dialog -->
   <div class="custom-dialog-overlay" id="custom-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-desc">
     <div class="custom-dialog">
@@ -900,7 +918,93 @@
     let conversationHistory = [];
     let currentMode = 'chat';
     let userLockedMode = false;   // true once the user manually clicks a toggle
+     // ─── Saved Trips (localStorage) ────────────────────────────────────────────
+      const SavedTrips = (() => {
+      const KEY = 'voyageflow_saved_trips';
+      const MAX_TRIPS = 50;
+      const _read = (store) => {
+        try { const raw = store.getItem(KEY); const a = raw ? JSON.parse(raw) : []; return Array.isArray(a) ? a : []; }
+        catch { return []; }
+      };
+      const _write = (store, trips) => {
+        try { store.setItem(KEY, JSON.stringify(trips.slice(0, MAX_TRIPS))); return true; } catch { return false; }
+      };
+      const deriveTitle = (markdown) => {
+        const text = String(markdown || '');
+        const h = text.match(/^#{1,6}\s*(.+)$/m);
+        if (h) return h[1].replace(/[*_`#]/g, '').trim().slice(0, 60);
+        const line = text.split('\n').map(s => s.trim()).find(Boolean) || 'Untitled trip';
+        return line.replace(/[*_`#]/g, '').slice(0, 60);
+      };
+      const listTrips = (store) => _read(store).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+      const saveTrip = (store, markdown, titleOverride) => {
+        const trips = _read(store); const md = String(markdown || '').trim();
+        if (!md) return { ok: false, reason: 'empty' };
+        if (trips.some(t => t.markdown === md)) return { ok: false, reason: 'duplicate' };
+        const trip = {
+          id: 'trip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          title: (titleOverride && titleOverride.trim()) || deriveTitle(md),
+          markdown: md, savedAt: Date.now(),
+        };
+        return _write(store, [trip, ...trips]) ? { ok: true, trip } : { ok: false, reason: 'quota' };
+      };
+      const loadTrip = (store, id) => _read(store).find(t => t.id === id) || null;
+      const deleteTrip = (store, id) => {
+        const trips = _read(store); const next = trips.filter(t => t.id !== id);
+        _write(store, next); return next.length !== trips.length;
+      };
+      return { deriveTitle, listTrips, saveTrip, loadTrip, deleteTrip };
+    })();
 
+    // ─── Saved Trips UI ────────────────────────────────────────────────────────
+    function renderSavedTripsList() {
+      const listEl = document.getElementById('saved-trips-list');
+      if (!listEl) return;
+      const trips = SavedTrips.listTrips(window.localStorage);
+      if (trips.length === 0) {
+        listEl.innerHTML = '<p style="color:#8b9ab5; text-align:center; padding:20px 0;">No saved trips yet. Generate an itinerary and click “💾 Save trip”.</p>';
+        return;
+      }
+      listEl.innerHTML = '';
+      trips.forEach(trip => {
+        const item = document.createElement('div');
+        item.style.cssText = 'border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;';
+        const info = document.createElement('div');
+        info.style.cssText = 'flex:1; min-width:0;';
+        const date = new Date(trip.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        info.innerHTML = '<div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+          trip.title.replace(/</g, '&lt;') + '</div><div style="font-size:12px; color:#8b9ab5;">' + date + '</div>';
+        const loadB = document.createElement('button');
+        loadB.className = 'btn-new-trip'; loadB.textContent = 'Load'; loadB.type = 'button';
+        loadB.addEventListener('click', () => loadSavedTrip(trip.id));
+        const delB = document.createElement('button');
+        delB.className = 'btn-new-trip'; delB.textContent = '🗑️'; delB.type = 'button';
+        delB.setAttribute('aria-label', 'Delete ' + trip.title);
+        delB.addEventListener('click', () => { SavedTrips.deleteTrip(window.localStorage, trip.id); renderSavedTripsList(); });
+        item.appendChild(info); item.appendChild(loadB); item.appendChild(delB);
+        listEl.appendChild(item);
+      });
+    }
+
+    function loadSavedTrip(id) {
+      const trip = SavedTrips.loadTrip(window.localStorage, id);
+      if (!trip) return;
+      // hide empty state, close panel, render the saved itinerary as a model bubble
+      const empty = document.getElementById('empty-state-container');
+      if (empty) empty.style.display = 'none';
+      document.getElementById('saved-trips-overlay').style.display = 'none';
+      appendMessageBubble('model', trip.markdown, {});
+    }
+
+    // wire header + panel buttons after DOM is ready
+    (function wireSavedTrips() {
+      const openBtn = document.getElementById('saved-trips-btn');
+      const closeBtn = document.getElementById('saved-trips-close');
+      const overlay = document.getElementById('saved-trips-overlay');
+      if (openBtn) openBtn.addEventListener('click', () => { renderSavedTripsList(); overlay.style.display = 'flex'; });
+      if (closeBtn) closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+      if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
+    })();
     // ── Week 5: Intent Classifier ────────────────────────────────────────────
     // Regex-based heuristic returning 'rag' | 'chat' | null (ambiguous).
     // Deliberately regex-only: VoyageFlow's two modes (plan-trip vs ask-question)
@@ -1459,8 +1563,23 @@
         p.textContent = rawContent;
         bubble.appendChild(p);
       }
+        // Saved Trips: add a Save button on substantial model itinerary replies
+      if (role === 'model' && typeof rawContent === 'string' && rawContent.trim().length > 80) {
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'save-trip-btn';
+        saveBtn.type = 'button';
+        saveBtn.textContent = '💾 Save trip';
+        saveBtn.setAttribute('aria-label', 'Save this itinerary');
+        saveBtn.addEventListener('click', () => {
+          const res = SavedTrips.saveTrip(window.localStorage, rawContent);
+          if (res.ok) { saveBtn.textContent = '✓ Saved'; saveBtn.disabled = true; }
+          else if (res.reason === 'duplicate') { saveBtn.textContent = '✓ Already saved'; saveBtn.disabled = true; }
+          else { saveBtn.textContent = '⚠️ Save failed'; }
+        });
+        bubble.appendChild(saveBtn);
+      }
 
-      row.appendChild(bubble);
+            row.appendChild(bubble);
       messagesTarget.appendChild(row);
       scrollToBottom();
     }
