@@ -918,6 +918,7 @@
     let conversationHistory = [];
     let currentMode = 'chat';
     let userLockedMode = false;   // true once the user manually clicks a toggle
+    let activeSavedTripSession = false;
      // ─── Saved Trips (localStorage) ────────────────────────────────────────────
       const SavedTrips = (() => {
       const KEY = 'voyageflow_saved_trips';
@@ -1018,9 +1019,13 @@ item.appendChild(info); item.appendChild(loadB); item.appendChild(continueB); it
 
   // Restore the saved itinerary as active conversation context so the user can ask follow-ups.
   conversationHistory = [{
-    role: 'model',
-    parts: [{ text: trip.markdown }]
-  }];
+  role: 'model',
+  parts: [{ text: trip.markdown }]
+}];
+
+activeSavedTripSession = true;
+currentMode = 'chat';
+applyDetectedMode('chat');
 
   const input = document.getElementById('chat-input');
   if (input) {
@@ -1399,6 +1404,7 @@ item.appendChild(info); item.appendChild(loadB); item.appendChild(continueB); it
 
     function resetApplicationState() {
       conversationHistory = [];
+      activeSavedTripSession = false;
       messagesTarget.innerHTML = '';
       emptyStateContainer.style.display = 'flex';
       chatInput.value = '';
@@ -1423,11 +1429,16 @@ item.appendChild(info); item.appendChild(loadB); item.appendChild(continueB); it
 
       // Week 5.1: classify intent once, at send time, from the complete query
       // (unless the user manually locked the mode via the toggle).
-      if (!userLockedMode) {
+      // Saved-trip continuations must stay in planning/chat mode so follow-up
+      // questions like "What is planned for Day 3?" use the saved itinerary
+      // instead of routing to the RAG knowledge base.
+      if (activeSavedTripSession) {
+        currentMode = 'chat';
+        applyDetectedMode('chat');
+      } else if (!userLockedMode) {
         const detected = classifyIntent(userText);
         if (detected) applyDetectedMode(detected);
       }
-
       if (WORKER_URL === 'YOUR_CLOUDFLARE_WORKER_URL_HERE' || !WORKER_URL) {
         showError("Please configure your Cloudflare Worker URL in the source code of index.html");
         return;
