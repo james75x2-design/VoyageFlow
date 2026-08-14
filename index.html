@@ -1008,7 +1008,6 @@
         renameB.className = 'btn-new-trip';
         renameB.textContent = 'Rename';
         renameB.type = 'button';
-
         renameB.addEventListener('click', () => {
           const nextTitle = prompt(
             'Enter a new trip name:',
@@ -1021,15 +1020,27 @@
             window.localStorage,
             trip.id,
             nextTitle
-           )) {
+          )) {
             renderSavedTripsList();
           }
-          });
-        delB.className = 'btn-new-trip'; delB.textContent = '🗑️'; delB.type = 'button';
-        delB.setAttribute('aria-label', 'Delete ' + trip.title);
-        delB.addEventListener('click', () => { SavedTrips.deleteTrip(window.localStorage, trip.id); renderSavedTripsList(); });
+        });
 
-item.appendChild(info); item.appendChild(loadB); item.appendChild(continueB); item.appendChild(renameB); item.appendChild(delB);
+        const delB = document.createElement('button');
+        delB.className = 'btn-new-trip';
+        delB.textContent = '🗑️';
+        delB.type = 'button';
+        delB.setAttribute('aria-label', 'Delete ' + trip.title);
+        delB.addEventListener('click', () => {
+          SavedTrips.deleteTrip(window.localStorage, trip.id);
+          renderSavedTripsList();
+        });
+
+        item.appendChild(info);
+        item.appendChild(loadB);
+        item.appendChild(continueB);
+        item.appendChild(renameB);
+        item.appendChild(delB);
+
         listEl.appendChild(item);
       });
     }
