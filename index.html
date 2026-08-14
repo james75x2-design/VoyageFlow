@@ -954,7 +954,27 @@
         const trips = _read(store); const next = trips.filter(t => t.id !== id);
         _write(store, next); return next.length !== trips.length;
       };
-      return { deriveTitle, listTrips, saveTrip, loadTrip, deleteTrip };
+
+      const renameTrip = (store, id, newTitle) => {
+       const title = String(newTitle || '').trim();
+       if (!title) return false;
+
+      const trips = _read(store);
+      const trip = trips.find(t => t.id === id);
+      if (!trip) return false;
+
+      trip.title = title.slice(0, 80);
+      return _write(store, trips);
+      };
+
+      return {
+        deriveTitle,
+        listTrips,
+        saveTrip,
+        loadTrip,
+        deleteTrip,
+        renameTrip
+      };
     })();
 
     // ─── Saved Trips UI ────────────────────────────────────────────────────────
@@ -984,12 +1004,32 @@
         continueB.setAttribute('aria-label', 'Continue planning ' + trip.title);
         continueB.addEventListener('click', () => continueSavedTrip(trip.id));
 
-        const delB = document.createElement('button');
+        const renameB = document.createElement('button');
+        renameB.className = 'btn-new-trip';
+        renameB.textContent = 'Rename';
+        renameB.type = 'button';
+
+        renameB.addEventListener('click', () => {
+          const nextTitle = prompt(
+            'Enter a new trip name:',
+            trip.title
+          );
+
+          if (!nextTitle) return;
+
+          if (SavedTrips.renameTrip(
+            window.localStorage,
+            trip.id,
+            nextTitle
+           )) {
+            renderSavedTripsList();
+          }
+          });
         delB.className = 'btn-new-trip'; delB.textContent = '🗑️'; delB.type = 'button';
         delB.setAttribute('aria-label', 'Delete ' + trip.title);
         delB.addEventListener('click', () => { SavedTrips.deleteTrip(window.localStorage, trip.id); renderSavedTripsList(); });
 
-item.appendChild(info); item.appendChild(loadB); item.appendChild(continueB); item.appendChild(delB);
+item.appendChild(info); item.appendChild(loadB); item.appendChild(continueB); item.appendChild(renameB); item.appendChild(delB);
         listEl.appendChild(item);
       });
     }
