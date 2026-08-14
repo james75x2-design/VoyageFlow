@@ -937,7 +937,15 @@
         const line = text.split('\n').map(s => s.trim()).find(Boolean) || 'Untitled trip';
         return line.replace(/[*_`#]/g, '').slice(0, 60);
       };
-      const listTrips = (store) => _read(store).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+      const listTrips = (store) =>
+        _read(store).sort((a, b) => {
+        const af = a.favorite ? 1 : 0;
+        const bf = b.favorite ? 1 : 0;
+
+        if (af !== bf) return bf - af;
+
+        return (b.savedAt || 0) - (a.savedAt || 0);
+      });
       const saveTrip = (store, markdown, titleOverride) => {
         const trips = _read(store); const md = String(markdown || '').trim();
         if (!md) return { ok: false, reason: 'empty' };
@@ -967,13 +975,25 @@
       return _write(store, trips);
       };
 
+      const toggleFavorite = (store, id) => {
+        const trips = _read(store);
+        const trip = trips.find(t => t.id === id);
+
+        if (!trip) return false;
+
+        trip.favorite = !trip.favorite;
+
+        return _write(store, trips);
+      };
+
       return {
         deriveTitle,
         listTrips,
         saveTrip,
         loadTrip,
         deleteTrip,
-        renameTrip
+        renameTrip,
+        toggleFavorite
       };
     })();
 
@@ -994,7 +1014,7 @@
         info.style.cssText = 'flex:1; min-width:0;';
         const date = new Date(trip.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         info.innerHTML = '<div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
-          trip.title.replace(/</g, '&lt;') + '</div><div style="font-size:12px; color:#8b9ab5;">' + date + '</div>';
+          (trip.favorite ? '★ ' : '') + trip.title.replace(/</g, '&lt;') + '</div><div style="font-size:12px; color:#8b9ab5;">' + date + '</div>';
         const loadB = document.createElement('button');
         loadB.className = 'btn-new-trip'; loadB.textContent = 'Load'; loadB.type = 'button';
         loadB.addEventListener('click', () => loadSavedTrip(trip.id));
@@ -1025,6 +1045,26 @@
           }
         });
 
+        const favoriteB = document.createElement('button');
+        favoriteB.className = 'btn-new-trip';
+        favoriteB.type = 'button';
+        favoriteB.textContent = trip.favorite ? '★' : '☆';
+
+        favoriteB.setAttribute(
+          'aria-label',
+           trip.favorite
+             ? 'Remove favorite from ' + trip.title
+             : 'Favorite ' + trip.title
+        );
+
+        favoriteB.addEventListener('click', () => {
+          SavedTrips.toggleFavorite(
+            window.localStorage,
+            trip.id
+         );
+
+          renderSavedTripsList();
+        });
         const delB = document.createElement('button');
         delB.className = 'btn-new-trip';
         delB.textContent = '🗑️';
@@ -1039,6 +1079,7 @@
         item.appendChild(loadB);
         item.appendChild(continueB);
         item.appendChild(renameB);
+        item.appendChild(favoriteB);
         item.appendChild(delB);
 
         listEl.appendChild(item);
