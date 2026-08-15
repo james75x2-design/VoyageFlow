@@ -1127,7 +1127,9 @@
   messagesTarget.innerHTML = '';
 
   // Render the selected itinerary into the chat.
-  appendMessageBubble('model', trip.markdown, {});
+  appendMessageBubble('model', trip.markdown, {
+  alreadySaved: true
+  });
 
   // Make the selected itinerary the only active conversation context.
   conversationHistory = [{
@@ -1178,7 +1180,9 @@ function restoreSavedSession(id) {
     appendMessageBubble(
       msg.role === 'user' ? 'user' : 'model',
       text,
-      {}
+      msg.role === 'model'
+        ? { alreadySaved: true }
+        : {}
     );
   });
 
@@ -1773,8 +1777,15 @@ function restoreSavedSession(id) {
         const saveBtn = document.createElement('button');
         saveBtn.className = 'save-trip-btn';
         saveBtn.type = 'button';
-        saveBtn.textContent = '💾 Save trip';
+                saveBtn.textContent = '💾 Save trip';
         saveBtn.setAttribute('aria-label', 'Save this itinerary');
+
+        if (meta.alreadySaved) {
+          saveBtn.textContent = '✓ Saved';
+          saveBtn.disabled = true;
+          saveBtn.setAttribute('aria-label', 'This itinerary is already saved');
+        }
+
         saveBtn.addEventListener('click', () => {
         const res = SavedTrips.saveTrip(
           window.localStorage,
