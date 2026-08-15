@@ -995,6 +995,14 @@
         return _write(store, trips);
       };
 
+      const deleteTrip = (store, id) => {
+        const trips = _read(store);
+        const nextTrips = trips.filter(t => t.id !== id);
+
+        if (nextTrips.length === trips.length) return false;
+
+        return _write(store, nextTrips);
+      };
       return {
         deriveTitle,
         listTrips,
