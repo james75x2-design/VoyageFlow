@@ -1032,9 +1032,6 @@
         const date = new Date(trip.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         info.innerHTML = '<div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
         (trip.favorite ? '★ ' : '') + String(trip.title || 'Untitled trip').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div><div style="font-size:12px; color:#8b9ab5;">' + date + '</div>';
-        const loadB = document.createElement('button');
-        loadB.className = 'btn-new-trip'; loadB.textContent = 'Load'; loadB.type = 'button';
-        loadB.addEventListener('click', () => loadSavedTrip(trip.id));
 
         const continueB = document.createElement('button');
         continueB.className = 'btn-new-trip'; continueB.textContent = 'Continue'; continueB.type = 'button';
@@ -1102,7 +1099,6 @@
         const actions = document.createElement('div');
         actions.style.cssText = 'display:flex; flex-wrap:wrap; align-items:center; gap:10px;';
 
-        actions.appendChild(loadB);
         actions.appendChild(continueB);
         actions.appendChild(restoreB);
         actions.appendChild(renameB);
@@ -1117,17 +1113,7 @@
       });
     }
 
-    function loadSavedTrip(id) {
-      const trip = SavedTrips.loadTrip(window.localStorage, id);
-      if (!trip) return;
-      // hide empty state, close panel, render the saved itinerary as a model bubble
-      const empty = document.getElementById('empty-state-container');
-      if (empty) empty.style.display = 'none';
-      const overlay = document.getElementById('saved-trips-overlay');
-      if (overlay) overlay.style.display = 'none';
-      appendMessageBubble('model', trip.markdown, {});
-    }
-function continueSavedTrip(id) {
+    function continueSavedTrip(id) {
   const trip = SavedTrips.loadTrip(window.localStorage, id);
   if (!trip) return;
 
@@ -1137,10 +1123,13 @@ function continueSavedTrip(id) {
   const overlay = document.getElementById('saved-trips-overlay');
   if (overlay) overlay.style.display = 'none';
 
-  // Render the saved itinerary into the chat.
+  // Clear the current chat so only the selected saved trip is active.
+  messagesTarget.innerHTML = '';
+
+  // Render the selected itinerary into the chat.
   appendMessageBubble('model', trip.markdown, {});
 
-  // Restore the saved itinerary as active conversation context so the user can ask follow-ups.
+  // Make the selected itinerary the only active conversation context.
   conversationHistory = [{
     role: 'model',
     parts: [{ text: trip.markdown }]
@@ -1155,6 +1144,8 @@ function continueSavedTrip(id) {
     input.placeholder = 'Continue planning this saved trip...';
     input.focus();
   }
+
+  scrollToBottom();
 }
 
 function restoreSavedSession(id) {
