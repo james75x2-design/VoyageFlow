@@ -946,22 +946,30 @@
 
         return (b.savedAt || 0) - (a.savedAt || 0);
       });
-      const saveTrip = (store, markdown, titleOverride) => {
-        const trips = _read(store); const md = String(markdown || '').trim();
+      const saveTrip = (store, markdown, titleOverride, historyOverride) => {
+        const trips = _read(store);
+        const md = String(markdown || '').trim();
+
         if (!md) return { ok: false, reason: 'empty' };
         if (trips.some(t => t.markdown === md)) return { ok: false, reason: 'duplicate' };
+
+        const historySnapshot = Array.isArray(historyOverride)
+          ? JSON.parse(JSON.stringify(historyOverride))
+          : [];
+
         const trip = {
           id: 'trip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
           title: (titleOverride && titleOverride.trim()) || deriveTitle(md),
-          markdown: md, savedAt: Date.now(),
+          markdown: md,
+          conversationHistory: historySnapshot,
+          savedAt: Date.now(),
         };
-        return _write(store, [trip, ...trips]) ? { ok: true, trip } : { ok: false, reason: 'quota' };
+
+        return _write(store, [trip, ...trips])
+          ? { ok: true, trip }
+          : { ok: false, reason: 'quota' };
       };
-      const loadTrip = (store, id) => _read(store).find(t => t.id === id) || null;
-      const deleteTrip = (store, id) => {
-        const trips = _read(store); const next = trips.filter(t => t.id !== id);
-        _write(store, next); return next.length !== trips.length;
-      };
+
 
       const renameTrip = (store, id, newTitle) => {
        const title = String(newTitle || '').trim();
@@ -1024,6 +1032,13 @@
         continueB.setAttribute('aria-label', 'Continue planning ' + trip.title);
         continueB.addEventListener('click', () => continueSavedTrip(trip.id));
 
+        const restoreB = document.createElement('button');
+        restoreB.className = 'btn-new-trip';
+        restoreB.textContent = 'Restore';
+        restoreB.type = 'button';
+        restoreB.setAttribute('aria-label', 'Restore saved session for ' + trip.title);
+        restoreB.addEventListener('click', () => restoreSavedSession(trip.id));
+
         const renameB = document.createElement('button');
         renameB.className = 'btn-new-trip';
         renameB.textContent = 'Rename';
@@ -1078,6 +1093,7 @@
         item.appendChild(info);
         item.appendChild(loadB);
         item.appendChild(continueB);
+        item.appendChild(restoreB);
         item.appendChild(renameB);
         item.appendChild(favoriteB);
         item.appendChild(delB);
@@ -1096,7 +1112,7 @@
       if (overlay) overlay.style.display = 'none';
       appendMessageBubble('model', trip.markdown, {});
     }
-    function continueSavedTrip(id) {
+function continueSavedTrip(id) {
   const trip = SavedTrips.loadTrip(window.localStorage, id);
   if (!trip) return;
 
@@ -1111,19 +1127,67 @@
 
   // Restore the saved itinerary as active conversation context so the user can ask follow-ups.
   conversationHistory = [{
-  role: 'model',
-  parts: [{ text: trip.markdown }]
-}];
+    role: 'model',
+    parts: [{ text: trip.markdown }]
+  }];
 
-activeSavedTripSession = true;
-currentMode = 'chat';
-applyDetectedMode('chat');
+  activeSavedTripSession = true;
+  currentMode = 'chat';
+  applyDetectedMode('chat');
 
   const input = document.getElementById('chat-input');
   if (input) {
     input.placeholder = 'Continue planning this saved trip...';
     input.focus();
   }
+}
+
+function restoreSavedSession(id) {
+  const trip = SavedTrips.loadTrip(window.localStorage, id);
+  if (!trip) return;
+
+  const hasHistory =
+    Array.isArray(trip.conversationHistory) &&
+    trip.conversationHistory.length > 0;
+
+  const restoredHistory = hasHistory
+    ? JSON.parse(JSON.stringify(trip.conversationHistory))
+    : [{
+        role: 'model',
+        parts: [{ text: trip.markdown }]
+      }];
+
+  const empty = document.getElementById('empty-state-container');
+  if (empty) empty.style.display = 'none';
+
+  const overlay = document.getElementById('saved-trips-overlay');
+  if (overlay) overlay.style.display = 'none';
+
+  messagesTarget.innerHTML = '';
+
+  restoredHistory.forEach(msg => {
+    const text = msg?.parts?.[0]?.text || '';
+    if (!text) return;
+
+    appendMessageBubble(
+      msg.role === 'user' ? 'user' : 'model',
+      text,
+      {}
+    );
+  });
+
+  conversationHistory = restoredHistory;
+  activeSavedTripSession = true;
+  currentMode = 'chat';
+  applyDetectedMode('chat');
+
+  const input = document.getElementById('chat-input');
+  if (input) {
+    input.placeholder = 'Continue this restored session...';
+    input.focus();
+  }
+
+  scrollToBottom();
 }
     // wire header + panel buttons after DOM is ready
     (function wireSavedTrips() {
@@ -1706,7 +1770,13 @@ applyDetectedMode('chat');
         saveBtn.textContent = '💾 Save trip';
         saveBtn.setAttribute('aria-label', 'Save this itinerary');
         saveBtn.addEventListener('click', () => {
-          const res = SavedTrips.saveTrip(window.localStorage, rawContent);
+        const res = SavedTrips.saveTrip(
+          window.localStorage,
+          rawContent,
+          null,
+          conversationHistory
+        );
+
           if (res.ok) { saveBtn.textContent = '✓ Saved'; saveBtn.disabled = true; }
           else if (res.reason === 'duplicate') { saveBtn.textContent = '✓ Already saved'; saveBtn.disabled = true; }
           else { saveBtn.textContent = '⚠️ Save failed'; }
