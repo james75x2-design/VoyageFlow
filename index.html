@@ -969,7 +969,8 @@
           ? { ok: true, trip }
           : { ok: false, reason: 'quota' };
       };
-
+      const loadTrip = (store, id) =>
+        _read(store).find(t => t.id === id) || null;
 
       const renameTrip = (store, id, newTitle) => {
        const title = String(newTitle || '').trim();
