@@ -1026,12 +1026,12 @@
       listEl.innerHTML = '';
       trips.forEach(trip => {
         const item = document.createElement('div');
-        item.style.cssText = 'border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;';
+        item.style.cssText = 'border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; display:flex; flex-direction:column; align-items:stretch; gap:10px;';
         const info = document.createElement('div');
-        info.style.cssText = 'flex:1; min-width:0;';
+        info.style.cssText = 'width:100%;';
         const date = new Date(trip.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         info.innerHTML = '<div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
-          (trip.favorite ? '★ ' : '') + trip.title.replace(/</g, '&lt;') + '</div><div style="font-size:12px; color:#8b9ab5;">' + date + '</div>';
+        (trip.favorite ? '★ ' : '') + String(trip.title || 'Untitled trip').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div><div style="font-size:12px; color:#8b9ab5;">' + date + '</div>';
         const loadB = document.createElement('button');
         loadB.className = 'btn-new-trip'; loadB.textContent = 'Load'; loadB.type = 'button';
         loadB.addEventListener('click', () => loadSavedTrip(trip.id));
@@ -1099,13 +1099,19 @@
           renderSavedTripsList();
         });
 
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex; flex-wrap:wrap; align-items:center; gap:10px;';
+
+        actions.appendChild(loadB);
+        actions.appendChild(continueB);
+        actions.appendChild(restoreB);
+        actions.appendChild(renameB);
+        actions.appendChild(favoriteB);
+        actions.appendChild(delB);
+
         item.appendChild(info);
-        item.appendChild(loadB);
-        item.appendChild(continueB);
-        item.appendChild(restoreB);
-        item.appendChild(renameB);
-        item.appendChild(favoriteB);
-        item.appendChild(delB);
+        item.appendChild(actions);
+
 
         listEl.appendChild(item);
       });
