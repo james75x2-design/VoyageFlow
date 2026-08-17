@@ -471,13 +471,13 @@ Set `BOOKING_AID`, `GYG_PARTNER_ID`, `VISITORS_COVERAGE_ID` in `createBookingDem
 - [x] Cache hardening: KB-versioned + hashed keys, skip refusals (Week 5.1)
 - [x] Per-IP rate limiting (Week 5.1)
 - [x] `/metrics` cache observability endpoint (Week 5.1)
+- [x] Saved itineraries / trip history (localStorage)
 
 **Upcoming**
 - [ ] Real-time flight prices via Kiwi.com Tequila / Duffel API
 - [ ] Streaming responses for faster perceived latency on cache misses
 - [ ] Hermetic eval mode for CI (mock Worker responses)
 - [ ] Multi-city trip planning
-- [ ] Saved itineraries / trip history (localStorage)
 - [ ] Currency conversion in the booking desk
 - [ ] KB expansion (e.g. travel-insurance chunk)
 - [ ] MCP integration for enterprise workflow connectivity
