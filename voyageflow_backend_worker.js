@@ -15,7 +15,7 @@ import {
  * VoyageFlow Serverless Cloudflare Worker — AI Gateway Router (v2.1.1)
  * Format:    ES Module (required for env secrets access)
  * Primary:   Google Gemini API (gemini-2.5-flash)
- * Fallback:  Groq API — tries gpt-oss-120b first, then llama-3.3-70b-versatile
+ * Fallback:  Groq API — tries gpt-oss-120b first, then gpt-oss-20b
  *
  *  * v2.3.0 Improvements over v2.2.0:
  *   - Hybrid retrieval: keyword scoring + vector similarity with score fusion
@@ -61,7 +61,7 @@ const RATE_LIMIT_WINDOW = 60;    // window in seconds
 // Verify these IDs against your Groq console before deploying.
 const GROQ_FALLBACK_MODELS = [
   "openai/gpt-oss-120b",
-  "llama-3.3-70b-versatile"
+  "openai/gpt-oss-20b"
 ];
 
 // ─── Upstream Timeout (ms) ────────────────────────────────────────────────────
