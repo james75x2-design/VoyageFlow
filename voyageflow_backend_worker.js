@@ -374,7 +374,7 @@ function normalizeScores(items, scoreKey) {
 }
 
 const RAG_CANDIDATE_POOL = 20;
-const KB_VERSION = "2026-07-25";   // bump whenever data/index/worker-chunks.js is regenerated; invalidates stale RAG cache
+const KB_VERSION = "2026-08-18";   // bump whenever data/index/worker-chunks.js is regenerated; invalidates stale RAG cache
 const RERANKER_MODEL = "@cf/baai/bge-reranker-base";
 
 // Cross-encoder reranker (Week 4): rescores top-N hybrid candidates.

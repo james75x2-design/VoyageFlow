@@ -479,7 +479,7 @@ Set `BOOKING_AID`, `GYG_PARTNER_ID`, `VISITORS_COVERAGE_ID` in `createBookingDem
 - [ ] Hermetic eval mode for CI (mock Worker responses)
 - [ ] Multi-city trip planning
 - [ ] Currency conversion in the booking desk
-- [ ] KB expansion (e.g. travel-insurance chunk)
+- [x] KB expansion (travel-insurance chunk)
 - [ ] MCP integration for enterprise workflow connectivity
 
 ---
