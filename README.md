@@ -241,13 +241,13 @@ Production hardening built on a shared KV-counter foundation.
 
 **15/15 answers and 14/15 retrieval on exact expected chunks** on the local eval harness (15 test cases including semantic queries, prompt injection, and out-of-scope refusal). Retrieval is graded against the chunks the deployed Worker actually returned (`debug.chunks_used`), so the eval measures the production pipeline. Answer quality holds at **100%**:
 
-| Metric | Week 2 baseline | Week 3 (hybrid) | Week 4 (reranker) | Current (expanded KB) |
+| Metric | Week 2 baseline | Week 3 (hybrid) | Week 4 (reranker) | Current (expanded KB, rerank fix) |
 |---|---|---|---|---|
 | Total tests | 15 | 15 | 15 | 15 |
-| Passed | 12 | 13 | **15** | 14 |
-| Retrieval passed | 13 | 13 | **15** | 14 |
+| Passed | 12 | 13 | **15** | 15 |
+| Retrieval passed | 13 | 13 | **15** | 15 (14 exact) |
 | Answer passed | 14 | 15 | **15** | **15** |
-| Overall pass rate | 80% | 87% | **100%** | 93% |
+| Overall pass rate | 80% | 87% | **100%** | 100% |
 
 The Week 4 run scored 100% against a smaller knowledge base. After the travel-insurance documents were added, the local retrieval scorer dropped to 14/15 (`vf-eval-001`). Grading retrieval against the Worker's own recorded chunks showed that the local scorer is not the production pipeline, and comparing the two exposed two Worker bugs. Reranker scores were paired with candidates by array position instead of by `id`, and only the top-5 fused results ever reached the reranker, so the documented top-20 → top-5 pipeline was not running. Both are fixed (`b406a87`), the RAG cache key was bumped, and all fixtures were re-recorded. Grading retrieval against the Worker's own recorded chunks is the current method; the retrieval figures in the earlier columns came from the local scorer, which does not run the reranker, so they are not directly comparable.
 
