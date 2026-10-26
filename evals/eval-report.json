@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T01:11:25.499Z",
+  "generated_at": "2026-10-26T14:18:37.902Z",
   "total": 15,
   "passed": 14,
   "failed": 1,
@@ -12,8 +12,8 @@
     {
       "id": "vf-eval-001",
       "query": "What should I know before booking hotels through VoyageFlow?",
-      "pass": false,
-      "failure_category": "retrieval_fail",
+      "pass": true,
+      "failure_category": "pass",
       "pipeline": "worker_rag",
       "retrieval_signal": "hybrid",
       "ranking_signal": "reranker",
@@ -21,12 +21,20 @@
       "worker_model": "gemini-2.5-flash",
       "worker_latency_ms": 6229,
       "retrieval": {
-        "pass": false,
+        "pass": true,
         "expected_chunk_ids": [
           "booking-policies::002",
           "voyageflow-overview::004"
         ],
         "retrieved_chunk_ids": [
+          "voyageflow-overview::001",
+          "booking-policies::002",
+          "tokyo-spring-guide::004",
+          "voyageflow-overview::004",
+          "travel-insurance::001"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "booking-policies::002",
           "tokyo-spring-guide::004",
           "voyageflow-overview::001",
@@ -52,8 +60,8 @@
     {
       "id": "vf-eval-002",
       "query": "How does VoyageFlow help plan a trip to Tokyo in spring?",
-      "pass": true,
-      "failure_category": "pass",
+      "pass": false,
+      "failure_category": "retrieval_fail",
       "pipeline": "worker_rag",
       "retrieval_signal": "hybrid",
       "ranking_signal": "reranker",
@@ -61,12 +69,20 @@
       "worker_model": "gemini-2.5-flash",
       "worker_latency_ms": 5694,
       "retrieval": {
-        "pass": true,
+        "pass": false,
         "expected_chunk_ids": [
           "tokyo-spring-guide::001",
           "tokyo-spring-guide::003"
         ],
         "retrieved_chunk_ids": [
+          "tokyo-spring-guide::003",
+          "voyageflow-overview::001",
+          "travel-insurance::001",
+          "tokyo-spring-guide::004",
+          "voyageflow-overview::003"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "tokyo-spring-guide::003",
           "travel-insurance::001",
           "voyageflow-overview::001",
@@ -108,6 +124,14 @@
         "retrieved_chunk_ids": [
           "booking-policies::001",
           "voyageflow-overview::001",
+          "voyageflow-overview::003",
+          "tokyo-spring-guide::004",
+          "voyageflow-overview::002"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
+          "booking-policies::001",
+          "voyageflow-overview::001",
           "tokyo-spring-guide::004",
           "voyageflow-overview::002",
           "booking-policies::002"
@@ -143,6 +167,14 @@
           "voyageflow-overview::002"
         ],
         "retrieved_chunk_ids": [
+          "voyageflow-overview::002",
+          "voyageflow-overview::001",
+          "booking-policies::003",
+          "tokyo-spring-guide::004",
+          "travel-insurance::002"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "voyageflow-overview::002",
           "voyageflow-overview::001",
           "booking-policies::003",
@@ -183,6 +215,14 @@
         ],
         "retrieved_chunk_ids": [
           "booking-policies::003",
+          "voyageflow-overview::004",
+          "travel-insurance::003",
+          "travel-insurance::001",
+          "voyageflow-overview::001"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
+          "booking-policies::003",
           "travel-insurance::001",
           "voyageflow-overview::001",
           "voyageflow-overview::004",
@@ -217,6 +257,14 @@
         "pass": true,
         "expected_chunk_ids": [],
         "retrieved_chunk_ids": [
+          "voyageflow-overview::003",
+          "booking-policies::002",
+          "booking-policies::003",
+          "voyageflow-overview::002",
+          "voyageflow-overview::004"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "voyageflow-overview::003",
           "booking-policies::002",
           "voyageflow-overview::002",
@@ -254,6 +302,14 @@
           "booking-policies::002",
           "tokyo-spring-guide::004",
           "voyageflow-overview::002",
+          "voyageflow-overview::004",
+          "booking-policies::001"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
+          "booking-policies::002",
+          "tokyo-spring-guide::004",
+          "voyageflow-overview::002",
           "booking-policies::001",
           "voyageflow-overview::004"
         ]
@@ -286,6 +342,14 @@
         "expected_chunk_ids": [],
         "retrieved_chunk_ids": [
           "booking-policies::001",
+          "travel-insurance::001",
+          "booking-policies::002",
+          "voyageflow-overview::003",
+          "tokyo-spring-guide::001"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
+          "booking-policies::001",
           "booking-policies::002",
           "travel-insurance::001",
           "travel-insurance::002",
@@ -317,6 +381,14 @@
         "pass": true,
         "expected_chunk_ids": [],
         "retrieved_chunk_ids": [
+          "booking-policies::001",
+          "voyageflow-overview::003",
+          "tokyo-spring-guide::002",
+          "booking-policies::002",
+          "travel-insurance::003"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "booking-policies::001",
           "booking-policies::002",
           "booking-policies::003",
@@ -351,6 +423,14 @@
           "booking-policies::004"
         ],
         "retrieved_chunk_ids": [
+          "booking-policies::004",
+          "travel-insurance::003",
+          "travel-insurance::001",
+          "travel-insurance::002",
+          "voyageflow-overview::004"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "booking-policies::004",
           "travel-insurance::003",
           "travel-insurance::002",
@@ -389,6 +469,14 @@
           "voyageflow-overview::002"
         ],
         "retrieved_chunk_ids": [
+          "tokyo-spring-guide::004",
+          "travel-insurance::003",
+          "voyageflow-overview::004",
+          "booking-policies::001",
+          "tokyo-spring-guide::001"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "booking-policies::001",
           "tokyo-spring-guide::001",
           "tokyo-spring-guide::004",
@@ -429,6 +517,14 @@
           "voyageflow-overview::004"
         ],
         "retrieved_chunk_ids": [
+          "travel-insurance::003",
+          "booking-policies::002",
+          "travel-insurance::001",
+          "booking-policies::003",
+          "voyageflow-overview::004"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "booking-policies::002",
           "travel-insurance::001",
           "travel-insurance::003",
@@ -468,6 +564,14 @@
           "tokyo-spring-guide::001"
         ],
         "retrieved_chunk_ids": [
+          "tokyo-spring-guide::001",
+          "tokyo-spring-guide::004",
+          "tokyo-spring-guide::003",
+          "booking-policies::004",
+          "tokyo-spring-guide::002"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "booking-policies::004",
           "tokyo-spring-guide::001",
           "tokyo-spring-guide::004",
@@ -508,6 +612,14 @@
         ],
         "retrieved_chunk_ids": [
           "voyageflow-overview::001",
+          "travel-insurance::002",
+          "travel-insurance::001",
+          "booking-policies::002",
+          "voyageflow-overview::002"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
+          "voyageflow-overview::001",
           "travel-insurance::001",
           "travel-insurance::002",
           "booking-policies::002",
@@ -546,6 +658,14 @@
           "tokyo-spring-guide::004"
         ],
         "retrieved_chunk_ids": [
+          "tokyo-spring-guide::002",
+          "tokyo-spring-guide::004",
+          "tokyo-spring-guide::001",
+          "voyageflow-overview::001",
+          "voyageflow-overview::003"
+        ],
+        "graded_against": "worker_chunks_used",
+        "local_retrieved_chunk_ids": [
           "tokyo-spring-guide::001",
           "tokyo-spring-guide::002",
           "tokyo-spring-guide::004",
@@ -568,8 +688,8 @@
     }
   ],
   "failure_categories": {
-    "retrieval_fail": 1,
-    "pass": 14
+    "pass": 14,
+    "retrieval_fail": 1
   },
   "pipelines_used": {
     "worker_rag": 15

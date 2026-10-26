@@ -120,9 +120,20 @@ function evaluateAnswer(testCase, answerResult) {
 }
 
 async function runOne(testCase) {
-  const retrievedChunks = (await retrieve(testCase.query, TOP_K)).slice(0, TOP_K);
+  const localChunks = (await retrieve(testCase.query, TOP_K)).slice(0, TOP_K);
   const answerResult = await answerForCase(testCase);
+  // Grade retrieval against what the Worker actually retrieved (the pipeline
+  // users hit), recorded in debug.chunks_used. Fall back to local retrieve()
+  // only when the Worker did not report its chunks.
+  const worker_chunks_used = Array.isArray(answerResult?.debug?.chunks_used)
+    ? answerResult.debug.chunks_used.slice(0, TOP_K)
+    : null;
+  const retrievedChunks = worker_chunks_used && worker_chunks_used.length > 0
+    ? worker_chunks_used
+    : localChunks;
   const retrieval = evaluateRetrieval(testCase, retrievedChunks);
+  retrieval.graded_against = retrievedChunks === localChunks ? "local_retrieve" : "worker_chunks_used";
+  retrieval.local_retrieved_chunk_ids = localChunks.map(c => c.chunk_id);
   const answer = evaluateAnswer(testCase, answerResult);
 
   // Week 4: _retrieval_optional flag — for semantic queries where the "correct"
