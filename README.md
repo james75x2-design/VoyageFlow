@@ -239,7 +239,7 @@ Production hardening built on a shared KV-counter foundation.
 
 ## 📊 Evaluation
 
-**93% pass rate** on the local eval harness (15 test cases including semantic queries, prompt injection, and out-of-scope refusal). Answer quality holds at **100%** — every case produces a correctly grounded, correctly refused, or correctly cited response:
+**15/15 answers and 14/15 retrieval on exact expected chunks** on the local eval harness (15 test cases including semantic queries, prompt injection, and out-of-scope refusal). Retrieval is graded against the chunks the deployed Worker actually returned (`debug.chunks_used`), so the eval measures the production pipeline. Answer quality holds at **100%**:
 
 | Metric | Week 2 baseline | Week 3 (hybrid) | Week 4 (reranker) | Current (expanded KB) |
 |---|---|---|---|---|
@@ -249,7 +249,9 @@ Production hardening built on a shared KV-counter foundation.
 | Answer passed | 14 | 15 | **15** | **15** |
 | Overall pass rate | 80% | 87% | **100%** | 93% |
 
-The Week 4 run scored 100% against a smaller knowledge base. Adding the travel-insurance documents introduced new competition in the candidate pool, and `vf-eval-001` now retrieves `voyageflow-overview::004` outside the top 5 — though the answer still cites it correctly, so answer quality is unaffected. This is the expected trade-off of KB growth rather than a retrieval defect, and it is left visible here rather than tuned away.
+The Week 4 run scored 100% against a smaller knowledge base. After the travel-insurance documents were added, the local retrieval scorer dropped to 14/15 (`vf-eval-001`). Grading retrieval against the Worker's own recorded chunks showed that the local scorer is not the production pipeline, and comparing the two exposed two Worker bugs. Reranker scores were paired with candidates by array position instead of by `id`, and only the top-5 fused results ever reached the reranker, so the documented top-20 → top-5 pipeline was not running. Both are fixed (`b406a87`), the RAG cache key was bumped, and all fixtures were re-recorded. Grading retrieval against the Worker's own recorded chunks is the current method; the retrieval figures in the earlier columns came from the local scorer, which does not run the reranker, so they are not directly comparable.
+
+One case, `vf-eval-001`, is graded on its answer rather than exact chunks: for that broad query nine chunks score 0.91–0.999 on the reranker, and the expected `booking-policies::002` ranks just outside the top 5 (0.9054). That is why strict retrieval is 14/15.
 
 ### Hermetic mode — record once, replay free
 
@@ -261,7 +263,7 @@ EVAL_HERMETIC=1 node evals/eval.mjs    # replay fixtures — no network, no toke
 node evals/eval.mjs                    # unchanged live behaviour
 ```
 
-Retrieval was already offline — `retrieve()` scores pre-embedded chunks locally with no network call — so only the generation step needed intercepting. Fixtures key off the stable test-case ids in `eval-data.json`, and a missing fixture fails loudly with the command needed to record it.
+Retrieval is scored from the Worker's recorded `debug.chunks_used`, so hermetic runs replay the production ranking exactly. Local `retrieve()` still runs and is kept in the report as `local_retrieved_chunk_ids` for comparison. Fixtures key off the stable test-case ids in `eval-data.json`, and a missing fixture fails loudly with the command needed to record it.
 
 Crucially, **replay still exercises the full grading pipeline**. Retrieval scoring, citation validation, and failure categorisation all run against replayed answers, so hermetic runs catch grading regressions rather than skipping them. A recorded and a hermetic run produce byte-identical reports.
 
