@@ -1,41 +1,35 @@
 {
   "query": "How does VoyageFlow help plan a trip to Tokyo in spring?",
-  "answer_markdown": "VoyageFlow is an AI travel concierge that helps travelers plan trips and generate ready-to-book itineraries [voyageflow-overview::001]. It provides destination guidance and day-by-day itineraries [voyageflow-overview::001]. For a Tokyo spring trip, VoyageFlow can generate a typical 5-day itinerary covering activities such as Shinjuku exploration, temple visits, and park picnics [tokyo-spring-guide::003]. VoyageFlow adjusts these itineraries based on trip length, traveler pace, and interests like food, culture, shopping, or nightlife [tokyo-spring-guide::003]. Additionally, VoyageFlow flags booking constraints for spring in Tokyo, such as higher hotel rates and flights selling out, and generates booking links with these date-specific considerations pre-filled [tokyo-spring-guide::004]. When a plan is confirmed, VoyageFlow generates a Booking Demand Card with structured booking links for hotels, flights, and activities/experiences [voyageflow-overview::003].",
+  "answer_markdown": "VoyageFlow is an AI travel concierge that helps travelers plan trips, discover destinations, and generate ready‑to‑book day‑by‑day itineraries with structured booking links, though it does not process payments directly [voyageflow-overview::001]. For a spring visit to Tokyo, VoyageFlow suggests a typical 5‑day itinerary that includes arrival and Shinjuku exploration, cultural sites like Asakusa and Senso‑ji, a Sumida River sakura cruise, a hanami picnic in Yoyogi Park, optional day trips to places such as Kamakura or Nikko, and a final day at Ueno Park before departure [tokyo-spring-guide::003]. It notes that spring in Tokyo runs from March through May, featuring cherry‑blossom viewing and mild temperatures, and recommends booking accommodations 3–6 months in advance for travel in late March and early April, when demand is highest [tokyo-spring-guide::001]. VoyageFlow also flags peak‑season booking constraints, such as hotel rates in central Tokyo being 30–50% higher during sakura week, flights selling out 2–3 months ahead, and the need to reserve popular ryokan and high‑demand restaurants well in advance, providing pre‑filled booking links that still require final confirmation on partner platforms [tokyo-spring-guide::004]. Finally, VoyageFlow advises users to verify current pricing, availability, visa and health requirements, and cancellation policies before finalizing any bookings [voyageflow-overview::004].",
   "citations": [
     {
-      "claim": "VoyageFlow is an AI travel concierge that helps travelers plan trips and generate ready-to-book itineraries.",
+      "claim": "VoyageFlow is an AI travel concierge that provides destination guidance, day‑by‑day itineraries, and structured booking links, but does not process payments directly.",
       "chunk_ids": [
         "voyageflow-overview::001"
       ]
     },
     {
-      "claim": "It provides destination guidance and day-by-day itineraries.",
-      "chunk_ids": [
-        "voyageflow-overview::001"
-      ]
-    },
-    {
-      "claim": "For a Tokyo spring trip, VoyageFlow can generate a typical 5-day itinerary covering activities such as Shinjuku exploration, temple visits, and park picnics.",
+      "claim": "Suggested 5‑day spring itinerary for Tokyo covering arrival, Shinjuku, Asakusa, Sumida River sakura cruise, Harajuku, Meiji Shrine, Yoyogi Park hanami, day trip to Kamakura or Nikko, and Ueno Park before departure.",
       "chunk_ids": [
         "tokyo-spring-guide::003"
       ]
     },
     {
-      "claim": "VoyageFlow adjusts these itineraries based on trip length, traveler pace, and interests like food, culture, shopping, or nightlife.",
+      "claim": "Spring in Tokyo runs March‑May with cherry‑blossom viewing, mild temperatures, and recommendation to book accommodations 3–6 months in advance for late‑March/early‑April travel.",
       "chunk_ids": [
-        "tokyo-spring-guide::003"
+        "tokyo-spring-guide::001"
       ]
     },
     {
-      "claim": "VoyageFlow flags booking constraints for spring in Tokyo, such as higher hotel rates and flights selling out, and generates booking links with these date-specific considerations pre-filled.",
+      "claim": "Booking constraints include 30–50% higher hotel rates during sakura week, flights selling out 2–3 months ahead, need to book ryokan 4–6 months ahead, and secure restaurant reservations early; VoyageFlow generates booking links with these considerations.",
       "chunk_ids": [
         "tokyo-spring-guide::004"
       ]
     },
     {
-      "claim": "When a plan is confirmed, VoyageFlow generates a Booking Demand Card with structured booking links for hotels, flights, and activities/experiences.",
+      "claim": "VoyageFlow advises users to verify pricing, availability, visa and entry requirements, health advisories, and cancellation policies before booking.",
       "chunk_ids": [
-        "voyageflow-overview::003"
+        "voyageflow-overview::004"
       ]
     }
   ],
@@ -51,9 +45,9 @@
   "debug": {
     "pipeline": "worker_rag",
     "worker_version": "2.4.0",
-    "worker_model": "gemini-2.5-flash",
+    "worker_model": "openai/gpt-oss-120b",
     "worker_mode": "rag",
-    "latency_ms": 5694,
+    "latency_ms": 715,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
@@ -67,6 +61,15 @@
         "retrieval_signal": "hybrid"
       },
       {
+        "chunk_id": "tokyo-spring-guide::001",
+        "section": "Overview",
+        "score": 0.7931,
+        "keyword_score": 9,
+        "vector_score": 0.6711,
+        "rerank_score": 0.9667,
+        "retrieval_signal": "hybrid"
+      },
+      {
         "chunk_id": "voyageflow-overview::001",
         "section": "What Is VoyageFlow?",
         "score": 0.9234,
@@ -76,30 +79,21 @@
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "travel-insurance::001",
-        "section": "What Travel Insurance Typically Covers",
-        "score": 0.8778,
-        "keyword_score": 12,
-        "vector_score": 0.6064,
-        "rerank_score": 0.8682,
-        "retrieval_signal": "hybrid"
-      },
-      {
         "chunk_id": "tokyo-spring-guide::004",
         "section": "Booking Considerations",
         "score": 0.875,
         "keyword_score": 9,
         "vector_score": 0.8026,
-        "rerank_score": 0.1654,
+        "rerank_score": 0.8682,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "voyageflow-overview::003",
-        "section": "Booking Links VoyageFlow Generates",
-        "score": 0.8225,
-        "keyword_score": 9,
-        "vector_score": 0.7183,
-        "rerank_score": 0.1066,
+        "chunk_id": "voyageflow-overview::004",
+        "section": "Verification and Disclaimers",
+        "score": 0.5409,
+        "keyword_score": 3,
+        "vector_score": 0.6676,
+        "rerank_score": 0.1895,
         "retrieval_signal": "hybrid"
       }
     ],

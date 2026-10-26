@@ -1,47 +1,23 @@
 {
   "query": "What's the process before I finalize my reservation?",
-  "answer_markdown": "Before finalizing a reservation, VoyageFlow strongly encourages users to verify several details [booking-policies::003]. This includes checking the current price on the partner platform, as VoyageFlow does not display live prices [booking-policies::003]. Users should also confirm the cancellation policy and refund window [booking-policies::003], as well as the room type, bed configuration, and included amenities [booking-policies::003]. It is important to verify the total cost, including taxes, fees, and resort charges [booking-policies::003]. Additionally, users should check passport validity and visa requirements for the destination [booking-policies::003]. VoyageFlow always recommends verifying local health advisories and travel warnings [voyageflow-overview::004]. Users must confirm all pricing, availability, and policies directly with the booking partner before completing payment [booking-policies::002].",
+  "answer_markdown": "Before you finalize any reservation, VoyageFlow advises you to verify several details: the current price on the partner platform, the cancellation policy and refund window, the room type and amenities, the total cost including taxes and fees, and that your passport and any visa requirements are in order [booking-policies::003]. You should also double‑check pricing and availability on the partner site, as well as visa, entry, local health advisories and the specific cancellation and refund policies for your booking [voyageflow-overview::004]. Once you have confirmed all of this, VoyageFlow will provide a Booking Demand Card with pre‑filled hotel, flight and activity search links, which you must follow to complete the reservation on the partner platform [voyageflow-overview::003].",
   "citations": [
     {
-      "claim": "Before finalizing a reservation, VoyageFlow strongly encourages users to verify several details.",
+      "claim": "Verify current price, cancellation policy, room type, total cost, passport and visa before booking.",
       "chunk_ids": [
         "booking-policies::003"
       ]
     },
     {
-      "claim": "This includes checking the current price on the partner platform, as VoyageFlow does not display live prices.",
-      "chunk_ids": [
-        "booking-policies::003"
-      ]
-    },
-    {
-      "claim": "Users should also confirm the cancellation policy and refund window, as well as the room type, bed configuration, and included amenities.",
-      "chunk_ids": [
-        "booking-policies::003"
-      ]
-    },
-    {
-      "claim": "It is important to verify the total cost, including taxes, fees, and resort charges.",
-      "chunk_ids": [
-        "booking-policies::003"
-      ]
-    },
-    {
-      "claim": "Additionally, users should check passport validity and visa requirements for the destination.",
-      "chunk_ids": [
-        "booking-policies::003"
-      ]
-    },
-    {
-      "claim": "VoyageFlow always recommends verifying local health advisories and travel warnings.",
+      "claim": "Double‑check pricing, availability, visa, health advisories, and cancellation policies on partner platform.",
       "chunk_ids": [
         "voyageflow-overview::004"
       ]
     },
     {
-      "claim": "Users must confirm all pricing, availability, and policies directly with the booking partner before completing payment.",
+      "claim": "Use Booking Demand Card links to complete reservation on partner platforms.",
       "chunk_ids": [
-        "booking-policies::002"
+        "voyageflow-overview::003"
       ]
     }
   ],
@@ -57,46 +33,28 @@
   "debug": {
     "pipeline": "worker_rag",
     "worker_version": "2.4.0",
-    "worker_model": "gemini-2.5-flash",
+    "worker_model": "openai/gpt-oss-120b",
     "worker_mode": "rag",
-    "latency_ms": 4389,
+    "latency_ms": 881,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
-      {
-        "chunk_id": "travel-insurance::003",
-        "section": "Choosing and Verifying a Policy",
-        "score": 0.9657,
-        "keyword_score": 9,
-        "vector_score": 0.6082,
-        "rerank_score": 0.0458,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "booking-policies::002",
-        "section": "What VoyageFlow Cannot Guarantee",
-        "score": 0.9112,
-        "keyword_score": 9,
-        "vector_score": 0.5371,
-        "rerank_score": 0.0038,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "travel-insurance::001",
-        "section": "What Travel Insurance Typically Covers",
-        "score": 0.8798,
-        "keyword_score": 9,
-        "vector_score": 0.496,
-        "rerank_score": 0.0026,
-        "retrieval_signal": "hybrid"
-      },
       {
         "chunk_id": "booking-policies::003",
         "section": "Verifying Information Before Booking",
         "score": 0.8333,
         "keyword_score": 6,
         "vector_score": 0.653,
-        "rerank_score": 0.0025,
+        "rerank_score": 0.0458,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "tokyo-spring-guide::004",
+        "section": "Booking Considerations",
+        "score": 0.7405,
+        "keyword_score": 5,
+        "vector_score": 0.6043,
+        "rerank_score": 0.0212,
         "retrieval_signal": "hybrid"
       },
       {
@@ -105,7 +63,25 @@
         "score": 0.7894,
         "keyword_score": 6,
         "vector_score": 0.5956,
-        "rerank_score": 0.0011,
+        "rerank_score": 0.0038,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "travel-insurance::003",
+        "section": "Choosing and Verifying a Policy",
+        "score": 0.9657,
+        "keyword_score": 9,
+        "vector_score": 0.6082,
+        "rerank_score": 0.0026,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "voyageflow-overview::003",
+        "section": "Booking Links VoyageFlow Generates",
+        "score": 0.7479,
+        "keyword_score": 6,
+        "vector_score": 0.5414,
+        "rerank_score": 0.0026,
         "retrieval_signal": "hybrid"
       }
     ],

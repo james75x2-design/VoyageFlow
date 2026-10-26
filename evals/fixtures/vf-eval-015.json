@@ -1,27 +1,21 @@
 {
   "query": "How far ahead should I plan for cherry blossom trips?",
-  "answer_markdown": "For cherry blossom trips, VoyageFlow recommends booking accommodations 3–6 months in advance for late March and early April travel [tokyo-spring-guide::001]. Flights from North America and Europe often sell out 2–3 months ahead for late-March travel [tokyo-spring-guide::004]. Popular ryokan (traditional inns) require booking 4–6 months in advance [tokyo-spring-guide::004]. Additionally, restaurant reservations at high-demand venues should be secured before arrival [tokyo-spring-guide::004].",
+  "answer_markdown": "VoyageFlow recommends booking accommodations 3–6 months in advance for late‑March and early‑April cherry‑blossom travel [tokyo-spring-guide::001]. Flights from North America and Europe often sell out 2–3 months ahead for late‑March trips, so secure those early as well [tokyo-spring-guide::004]. Popular ryokan (traditional inns) should be booked 4–6 months in advance, and restaurant reservations at high‑demand venues should be made before you arrive [tokyo-spring-guide::004].",
   "citations": [
     {
-      "claim": "VoyageFlow recommends booking accommodations 3–6 months in advance for late March and early April travel.",
+      "claim": "Book accommodations 3–6 months in advance for late‑March/early‑April cherry‑blossom travel.",
       "chunk_ids": [
         "tokyo-spring-guide::001"
       ]
     },
     {
-      "claim": "Flights from North America and Europe often sell out 2–3 months ahead for late-March travel.",
+      "claim": "Flights from North America and Europe often sell out 2–3 months ahead for late‑March trips.",
       "chunk_ids": [
         "tokyo-spring-guide::004"
       ]
     },
     {
-      "claim": "Popular ryokan (traditional inns) require booking 4–6 months in advance.",
-      "chunk_ids": [
-        "tokyo-spring-guide::004"
-      ]
-    },
-    {
-      "claim": "Restaurant reservations at high-demand venues should be secured before arrival.",
+      "claim": "Popular ryokan require booking 4–6 months in advance and restaurant reservations should be secured before arrival.",
       "chunk_ids": [
         "tokyo-spring-guide::004"
       ]
@@ -39,18 +33,18 @@
   "debug": {
     "pipeline": "worker_rag",
     "worker_version": "2.4.0",
-    "worker_model": "gemini-2.5-flash",
+    "worker_model": "openai/gpt-oss-120b",
     "worker_mode": "rag",
-    "latency_ms": 3455,
+    "latency_ms": 745,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
       {
-        "chunk_id": "tokyo-spring-guide::002",
-        "section": "Cherry Blossom Season",
-        "score": 1,
+        "chunk_id": "tokyo-spring-guide::001",
+        "section": "Overview",
+        "score": 0.9847,
         "keyword_score": 9,
-        "vector_score": 0.6918,
+        "vector_score": 0.6706,
         "rerank_score": 0.9528,
         "retrieval_signal": "hybrid"
       },
@@ -64,30 +58,30 @@
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "tokyo-spring-guide::001",
-        "section": "Overview",
-        "score": 0.9847,
+        "chunk_id": "tokyo-spring-guide::002",
+        "section": "Cherry Blossom Season",
+        "score": 1,
         "keyword_score": 9,
-        "vector_score": 0.6706,
+        "vector_score": 0.6918,
         "rerank_score": 0.0075,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "voyageflow-overview::001",
-        "section": "What Is VoyageFlow?",
-        "score": 0.802,
-        "keyword_score": 9,
-        "vector_score": 0.4178,
-        "rerank_score": 0,
+        "chunk_id": "tokyo-spring-guide::003",
+        "section": "Suggested Spring Itinerary",
+        "score": 0.6304,
+        "keyword_score": 3,
+        "vector_score": 0.6416,
+        "rerank_score": 0.0002,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "voyageflow-overview::003",
-        "section": "Booking Links VoyageFlow Generates",
-        "score": 0.725,
+        "chunk_id": "travel-insurance::001",
+        "section": "What Travel Insurance Typically Covers",
+        "score": 0.6879,
         "keyword_score": 6,
-        "vector_score": 0.5419,
-        "rerank_score": 0,
+        "vector_score": 0.4906,
+        "rerank_score": 0.0001,
         "retrieval_signal": "hybrid"
       }
     ],

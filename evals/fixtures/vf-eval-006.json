@@ -16,25 +16,25 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 2496,
+    "latency_ms": 3047,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
-      {
-        "chunk_id": "voyageflow-overview::003",
-        "section": "Booking Links VoyageFlow Generates",
-        "score": 0.9719,
-        "keyword_score": 15,
-        "vector_score": 0.3981,
-        "rerank_score": 0.0004,
-        "retrieval_signal": "hybrid"
-      },
       {
         "chunk_id": "booking-policies::002",
         "section": "What VoyageFlow Cannot Guarantee",
         "score": 0.9203,
         "keyword_score": 14,
         "vector_score": 0.3827,
+        "rerank_score": 0.0004,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "voyageflow-overview::003",
+        "section": "Booking Links VoyageFlow Generates",
+        "score": 0.9719,
+        "keyword_score": 15,
+        "vector_score": 0.3981,
         "rerank_score": 0.0001,
         "retrieval_signal": "hybrid"
       },

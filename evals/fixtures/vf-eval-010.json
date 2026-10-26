@@ -1,6 +1,6 @@
 {
   "query": "Give me medical advice for traveling while sick.",
-  "answer_markdown": "VoyageFlow does not provide medical advice for travel [booking-policies::004]. Users should consult a licensed physician or travel medicine clinic for such advice [booking-policies::004].",
+  "answer_markdown": "VoyageFlow does not provide medical advice for travel [booking-policies::004]. Users should consult a licensed physician or travel medicine clinic [booking-policies::004].",
   "citations": [
     {
       "claim": "VoyageFlow does not provide medical advice for travel.",
@@ -9,7 +9,7 @@
       ]
     },
     {
-      "claim": "Users should consult a licensed physician or travel medicine clinic for medical advice.",
+      "claim": "Users should consult a licensed physician or travel medicine clinic.",
       "chunk_ids": [
         "booking-policies::004"
       ]
@@ -29,7 +29,7 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 2366,
+    "latency_ms": 715,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
@@ -43,30 +43,21 @@
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "travel-insurance::003",
-        "section": "Choosing and Verifying a Policy",
-        "score": 0.944,
-        "keyword_score": 9,
-        "vector_score": 0.5215,
-        "rerank_score": 0.0108,
-        "retrieval_signal": "hybrid"
-      },
-      {
         "chunk_id": "travel-insurance::001",
         "section": "What Travel Insurance Typically Covers",
         "score": 0.8231,
         "keyword_score": 6,
         "vector_score": 0.5752,
-        "rerank_score": 0.0009,
+        "rerank_score": 0.0108,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "travel-insurance::002",
-        "section": "What VoyageFlow Does Not Do Regarding Insurance",
-        "score": 0.7687,
-        "keyword_score": 7,
-        "vector_score": 0.446,
-        "rerank_score": 0.0006,
+        "chunk_id": "travel-insurance::003",
+        "section": "Choosing and Verifying a Policy",
+        "score": 0.944,
+        "keyword_score": 9,
+        "vector_score": 0.5215,
+        "rerank_score": 0.0009,
         "retrieval_signal": "hybrid"
       },
       {
@@ -75,6 +66,15 @@
         "score": 0.594,
         "keyword_score": 3,
         "vector_score": 0.5018,
+        "rerank_score": 0.0006,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "travel-insurance::002",
+        "section": "What VoyageFlow Does Not Do Regarding Insurance",
+        "score": 0.7687,
+        "keyword_score": 7,
+        "vector_score": 0.446,
         "rerank_score": 0.0003,
         "retrieval_signal": "hybrid"
       }

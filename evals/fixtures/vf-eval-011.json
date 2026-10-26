@@ -1,29 +1,35 @@
 {
   "query": "Can I book a place to stay through your service?",
-  "answer_markdown": "VoyageFlow generates booking links that point to legitimate partner platforms [booking-policies::001]. These links are pre-filled with date-specific considerations [tokyo-spring-guide::004]. However, final pricing and availability must be confirmed on partner platforms [tokyo-spring-guide::004]. Users are responsible for confirming all details before payment on the partner platform [voyageflow-overview::004].",
+  "answer_markdown": "VoyageFlow is an AI travel concierge that generates structured booking links for hotels, but it does not process payments directly [voyageflow-overview::001, voyageflow-overview::003]. Users complete the actual booking on partner sites like Booking.com, Expedia, or Agoda [voyageflow-overview::002]. VoyageFlow does not act as a travel agent, an Online Travel Agency (OTA), or a merchant of record [voyageflow-overview::002]. All transactions occur on partner platforms [voyageflow-overview::002].",
   "citations": [
     {
-      "claim": "VoyageFlow generates booking links that point to legitimate partner platforms.",
+      "claim": "VoyageFlow is an AI travel concierge that generates structured booking links for hotels.",
       "chunk_ids": [
-        "booking-policies::001"
+        "voyageflow-overview::003"
       ]
     },
     {
-      "claim": "These links are pre-filled with date-specific considerations.",
+      "claim": "VoyageFlow does not process payments directly.",
       "chunk_ids": [
-        "tokyo-spring-guide::004"
+        "voyageflow-overview::001"
       ]
     },
     {
-      "claim": "Final pricing and availability must be confirmed on partner platforms.",
+      "claim": "Users complete the actual booking on partner sites like Booking.com, Expedia, or Agoda.",
       "chunk_ids": [
-        "tokyo-spring-guide::004"
+        "voyageflow-overview::002"
       ]
     },
     {
-      "claim": "Users are responsible for confirming all details before payment on the partner platform.",
+      "claim": "VoyageFlow does not act as a travel agent, an Online Travel Agency (OTA), or a merchant of record.",
       "chunk_ids": [
-        "voyageflow-overview::004"
+        "voyageflow-overview::002"
+      ]
+    },
+    {
+      "claim": "All transactions occur on partner platforms.",
+      "chunk_ids": [
+        "voyageflow-overview::002"
       ]
     }
   ],
@@ -41,10 +47,19 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 4167,
+    "latency_ms": 661,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
+      {
+        "chunk_id": "booking-policies::003",
+        "section": "Verifying Information Before Booking",
+        "score": 0.75,
+        "keyword_score": 2,
+        "vector_score": 0.5511,
+        "rerank_score": 0.0008,
+        "retrieval_signal": "hybrid"
+      },
       {
         "chunk_id": "tokyo-spring-guide::004",
         "section": "Booking Considerations",
@@ -55,39 +70,30 @@
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "travel-insurance::003",
-        "section": "Choosing and Verifying a Policy",
-        "score": 0.984,
-        "keyword_score": 4,
-        "vector_score": 0.5334,
-        "rerank_score": 0.0004,
+        "chunk_id": "voyageflow-overview::001",
+        "section": "What Is VoyageFlow?",
+        "score": 0.7305,
+        "keyword_score": 3,
+        "vector_score": 0.3919,
+        "rerank_score": 0.0006,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "voyageflow-overview::004",
-        "section": "Verification and Disclaimers",
-        "score": 0.9669,
-        "keyword_score": 4,
-        "vector_score": 0.5146,
-        "rerank_score": 0.0003,
+        "chunk_id": "voyageflow-overview::002",
+        "section": "How VoyageFlow Handles Hotels and Flights",
+        "score": 0.6951,
+        "keyword_score": 2,
+        "vector_score": 0.4906,
+        "rerank_score": 0.0006,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "booking-policies::001",
-        "section": "What VoyageFlow Can Guarantee",
-        "score": 0.9163,
-        "keyword_score": 4,
-        "vector_score": 0.4589,
-        "rerank_score": 0.0002,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "tokyo-spring-guide::001",
-        "section": "Overview",
-        "score": 0.8497,
-        "keyword_score": 4,
-        "vector_score": 0.3854,
-        "rerank_score": 0.0002,
+        "chunk_id": "voyageflow-overview::003",
+        "section": "Booking Links VoyageFlow Generates",
+        "score": 0.6847,
+        "keyword_score": 2,
+        "vector_score": 0.4791,
+        "rerank_score": 0.0006,
         "retrieval_signal": "hybrid"
       }
     ],

@@ -374,7 +374,7 @@ function normalizeScores(items, scoreKey) {
 }
 
 const RAG_CANDIDATE_POOL = 20;
-const KB_VERSION = "2026-08-18";   // bump whenever data/index/worker-chunks.js is regenerated; invalidates stale RAG cache
+const KB_VERSION = "2026-08-18-rerank-fix-pool";   // bump whenever data/index/worker-chunks.js is regenerated; invalidates stale RAG cache
 const RERANKER_MODEL = "@cf/baai/bge-reranker-base";
 
 // Cross-encoder reranker (Week 4): rescores top-N hybrid candidates.
@@ -390,10 +390,24 @@ async function rerankCandidates(env, query, candidates) {
     const scores = result?.response;
     if (!Array.isArray(scores) || scores.length !== candidates.length) return null;
 
+    // The reranker returns [{ id, score }] sorted by score (best first), where
+    // id is the index of the context in the request. Pair scores to candidates
+    // by id, not by array position.
+    const rerankScoreById = new Map();
+    for (const item of scores) {
+      if (!item || !Number.isInteger(item.id) || item.id < 0 || item.id >= candidates.length ||
+          typeof item.score !== "number" || !Number.isFinite(item.score) ||
+          rerankScoreById.has(item.id)) {
+        return null; // malformed or duplicate ids: fall back to hybrid fusion ranking
+      }
+      rerankScoreById.set(item.id, item.score);
+    }
+    if (rerankScoreById.size !== candidates.length) return null;
+
     return candidates
       .map((c, i) => ({
         ...c,
-        rerank_score: Number((scores[i]?.score ?? 0).toFixed(4))
+        rerank_score: Number(rerankScoreById.get(i).toFixed(4))
       }))
       .sort((a, b) => b.rerank_score - a.rerank_score);
   } catch (err) {
@@ -445,7 +459,7 @@ async function ragRetrieveHybrid(env, query, topK, poolSize) {
 
   return fused
     .sort((a, b) => b.fused_score - a.fused_score)
-    .slice(0, topK)
+    .slice(0, effectiveK)
     .map(c => ({
       chunk_id: c.chunk_id,
       section: c.section,

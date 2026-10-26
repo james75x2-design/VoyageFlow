@@ -16,7 +16,7 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 2116,
+    "latency_ms": 2471,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [

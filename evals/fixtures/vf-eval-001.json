@@ -1,42 +1,53 @@
 {
   "query": "What should I know before booking hotels through VoyageFlow?",
-  "answer_markdown": "Before booking hotels through VoyageFlow, it's important to know that VoyageFlow provides structured booking links for hotels but does not process payments directly [voyageflow-overview::001]. VoyageFlow cannot guarantee hotel availability or prices, as inventory and rates fluctuate minute to minute on partner platforms [booking-policies::002]. For example, hotel rates in central Tokyo can be 30–50% higher during sakura week, and popular ryokan may require booking 4–6 months in advance [tokyo-spring-guide::004]. Cancellation or refund outcomes are governed by the partner platform's terms, not by VoyageFlow [booking-policies::002]. Therefore, users must confirm all pricing, availability, and policies directly with the booking partner before completing payment [booking-policies::002, voyageflow-overview::004]. VoyageFlow always recommends users verify current pricing and availability on the partner platform, as well as cancellation and refund policies specific to the booking, before making a reservation [voyageflow-overview::004].",
+  "answer_markdown": "Before booking hotels through VoyageFlow, it is strongly recommended to verify several details directly on the partner platform [booking-policies::003]. You should confirm the current price, as VoyageFlow does not display live prices [booking-policies::003]. It's also important to check the cancellation policy and refund window [booking-policies::003], as well as the room type, bed configuration, and included amenities [booking-policies::003]. Always verify the total cost, including taxes, fees, and resort charges [booking-policies::003]. VoyageFlow advises users to verify travel information before booking, including current pricing and availability on the partner platform, and cancellation and refund policies specific to the booking [voyageflow-overview::004]. Pricing, availability, and policies can change without notice, and users are responsible for confirming all details before payment [voyageflow-overview::004]. For example, hotel rates in central Tokyo can be 30–50% higher during sakura week, and final pricing and availability must be confirmed on partner platforms [tokyo-spring-guide::004].",
   "citations": [
     {
-      "claim": "VoyageFlow provides structured booking links for hotels but does not process payments directly.",
+      "claim": "It is strongly recommended to verify several details directly on the partner platform before booking hotels through VoyageFlow.",
       "chunk_ids": [
-        "voyageflow-overview::001"
+        "booking-policies::003"
       ]
     },
     {
-      "claim": "VoyageFlow cannot guarantee hotel availability or prices, as inventory and rates fluctuate on partner platforms.",
+      "claim": "You should confirm the current price, as VoyageFlow does not display live prices.",
       "chunk_ids": [
-        "booking-policies::002"
+        "booking-policies::003"
       ]
     },
     {
-      "claim": "Hotel rates in central Tokyo can be 30–50% higher during sakura week, and popular ryokan may require booking 4–6 months in advance.",
+      "claim": "It's important to check the cancellation policy and refund window.",
+      "chunk_ids": [
+        "booking-policies::003"
+      ]
+    },
+    {
+      "claim": "You should also verify the room type, bed configuration, and included amenities.",
+      "chunk_ids": [
+        "booking-policies::003"
+      ]
+    },
+    {
+      "claim": "Always verify the total cost, including taxes, fees, and resort charges.",
+      "chunk_ids": [
+        "booking-policies::003"
+      ]
+    },
+    {
+      "claim": "VoyageFlow advises users to verify travel information before booking, including current pricing and availability on the partner platform, and cancellation and refund policies specific to the booking.",
+      "chunk_ids": [
+        "voyageflow-overview::004"
+      ]
+    },
+    {
+      "claim": "Pricing, availability, and policies can change without notice, and users are responsible for confirming all details before payment.",
+      "chunk_ids": [
+        "voyageflow-overview::004"
+      ]
+    },
+    {
+      "claim": "Hotel rates in central Tokyo can be 30–50% higher during sakura week, and final pricing and availability must be confirmed on partner platforms.",
       "chunk_ids": [
         "tokyo-spring-guide::004"
-      ]
-    },
-    {
-      "claim": "Cancellation or refund outcomes are governed by the partner platform's terms, not by VoyageFlow.",
-      "chunk_ids": [
-        "booking-policies::002"
-      ]
-    },
-    {
-      "claim": "Users must confirm all pricing, availability, and policies directly with the booking partner before completing payment.",
-      "chunk_ids": [
-        "booking-policies::002",
-        "voyageflow-overview::004"
-      ]
-    },
-    {
-      "claim": "VoyageFlow recommends users verify current pricing and availability on the partner platform, as well as cancellation and refund policies specific to the booking, before making a reservation.",
-      "chunk_ids": [
-        "voyageflow-overview::004"
       ]
     }
   ],
@@ -54,26 +65,26 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 6229,
+    "latency_ms": 1046,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
       {
-        "chunk_id": "voyageflow-overview::001",
-        "section": "What Is VoyageFlow?",
-        "score": 0.9626,
-        "keyword_score": 12,
-        "vector_score": 0.743,
+        "chunk_id": "voyageflow-overview::004",
+        "section": "Verification and Disclaimers",
+        "score": 0.9145,
+        "keyword_score": 10,
+        "vector_score": 0.7995,
         "rerank_score": 0.9989,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "booking-policies::002",
-        "section": "What VoyageFlow Cannot Guarantee",
-        "score": 0.9448,
-        "keyword_score": 12,
-        "vector_score": 0.7144,
-        "rerank_score": 0.9896,
+        "chunk_id": "booking-policies::003",
+        "section": "Verifying Information Before Booking",
+        "score": 0.875,
+        "keyword_score": 9,
+        "vector_score": 0.803,
+        "rerank_score": 0.9944,
         "retrieval_signal": "hybrid"
       },
       {
@@ -82,16 +93,16 @@
         "score": 0.9404,
         "keyword_score": 12,
         "vector_score": 0.7072,
-        "rerank_score": 0.9543,
+        "rerank_score": 0.9896,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "voyageflow-overview::004",
-        "section": "Verification and Disclaimers",
-        "score": 0.9145,
-        "keyword_score": 10,
-        "vector_score": 0.7995,
-        "rerank_score": 0.948,
+        "chunk_id": "travel-insurance::003",
+        "section": "Choosing and Verifying a Policy",
+        "score": 0.8348,
+        "keyword_score": 9,
+        "vector_score": 0.7384,
+        "rerank_score": 0.9712,
         "retrieval_signal": "hybrid"
       },
       {
@@ -100,7 +111,7 @@
         "score": 0.9006,
         "keyword_score": 12,
         "vector_score": 0.6434,
-        "rerank_score": 0.9054,
+        "rerank_score": 0.9543,
         "retrieval_signal": "hybrid"
       }
     ],

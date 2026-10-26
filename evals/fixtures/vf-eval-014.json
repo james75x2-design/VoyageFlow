@@ -1,13 +1,7 @@
 {
   "query": "What promises does VoyageFlow NOT make?",
-  "answer_markdown": "VoyageFlow does not process payments directly [voyageflow-overview::001]. It also does not sell, underwrite, or act as a broker for any travel insurance product, nor does it recommend a specific insurer, plan, or coverage amount [travel-insurance::002]. VoyageFlow cannot provide advice on whether a given policy is adequate for a traveler's situation or process claims, refunds, or reimbursements of any kind [travel-insurance::002]. Furthermore, VoyageFlow cannot guarantee hotel availability or prices, flight availability or fares, cancellation or refund outcomes, visa approvals, entry permissions, or health clearances [booking-policies::002]. Real-time seat availability is not stored inside VoyageFlow [voyageflow-overview::002]. VoyageFlow does not act as a travel agent, an Online Travel Agency (OTA), or a merchant of record [voyageflow-overview::002].",
+  "answer_markdown": "VoyageFlow does not sell, underwrite, or act as a broker for any travel insurance product [travel-insurance::002]. It also does not recommend a specific insurer, plan, or coverage amount [travel-insurance::002], nor does it provide advice on whether a given policy is adequate for a traveler's situation [travel-insurance::002]. VoyageFlow does not process claims, refunds, or reimbursements of any kind [travel-insurance::002].\n\nVoyageFlow cannot guarantee hotel availability at the time of booking, hotel prices, flight availability or fares, cancellation or refund outcomes, or visa approvals, entry permissions, or health clearances [booking-policies::002].\n\nAdditionally, VoyageFlow does not provide medical advice for travel, legal advice about visas, immigration, or customs, real-time weather forecasts or emergency alerts, or personal financial or insurance recommendations [booking-policies::004].",
   "citations": [
-    {
-      "claim": "VoyageFlow does not process payments directly.",
-      "chunk_ids": [
-        "voyageflow-overview::001"
-      ]
-    },
     {
       "claim": "VoyageFlow does not sell, underwrite, or act as a broker for any travel insurance product.",
       "chunk_ids": [
@@ -63,15 +57,27 @@
       ]
     },
     {
-      "claim": "Real-time seat availability is not stored inside VoyageFlow.",
+      "claim": "VoyageFlow does not provide medical advice for travel.",
       "chunk_ids": [
-        "voyageflow-overview::002"
+        "booking-policies::004"
       ]
     },
     {
-      "claim": "VoyageFlow does not act as a travel agent, an Online Travel Agency (OTA), or a merchant of record.",
+      "claim": "VoyageFlow does not provide legal advice about visas, immigration, or customs.",
       "chunk_ids": [
-        "voyageflow-overview::002"
+        "booking-policies::004"
+      ]
+    },
+    {
+      "claim": "VoyageFlow does not provide real-time weather forecasts or emergency alerts.",
+      "chunk_ids": [
+        "booking-policies::004"
+      ]
+    },
+    {
+      "claim": "VoyageFlow does not provide personal financial or insurance recommendations.",
+      "chunk_ids": [
+        "booking-policies::004"
       ]
     }
   ],
@@ -89,35 +95,17 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 4687,
+    "latency_ms": 687,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
-      {
-        "chunk_id": "voyageflow-overview::001",
-        "section": "What Is VoyageFlow?",
-        "score": 0.9769,
-        "keyword_score": 12,
-        "vector_score": 0.6968,
-        "rerank_score": 0.764,
-        "retrieval_signal": "hybrid"
-      },
       {
         "chunk_id": "travel-insurance::002",
         "section": "What VoyageFlow Does Not Do Regarding Insurance",
         "score": 0.9371,
         "keyword_score": 12,
         "vector_score": 0.6388,
-        "rerank_score": 0.5072,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "travel-insurance::001",
-        "section": "What Travel Insurance Typically Covers",
-        "score": 0.8895,
-        "keyword_score": 12,
-        "vector_score": 0.5692,
-        "rerank_score": 0.4054,
+        "rerank_score": 0.764,
         "retrieval_signal": "hybrid"
       },
       {
@@ -126,16 +114,34 @@
         "score": 0.875,
         "keyword_score": 9,
         "vector_score": 0.7306,
-        "rerank_score": 0.217,
+        "rerank_score": 0.5072,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "voyageflow-overview::002",
-        "section": "How VoyageFlow Handles Hotels and Flights",
-        "score": 0.847,
+        "chunk_id": "voyageflow-overview::001",
+        "section": "What Is VoyageFlow?",
+        "score": 0.9769,
+        "keyword_score": 12,
+        "vector_score": 0.6968,
+        "rerank_score": 0.4054,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "booking-policies::004",
+        "section": "Out-of-Scope Topics",
+        "score": 0.8301,
         "keyword_score": 9,
-        "vector_score": 0.6897,
-        "rerank_score": 0.2003,
+        "vector_score": 0.6651,
+        "rerank_score": 0.3469,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "booking-policies::001",
+        "section": "What VoyageFlow Can Guarantee",
+        "score": 0.745,
+        "keyword_score": 6,
+        "vector_score": 0.7233,
+        "rerank_score": 0.2623,
         "retrieval_signal": "hybrid"
       }
     ],

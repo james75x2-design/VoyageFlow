@@ -16,35 +16,17 @@
     "worker_version": "2.4.0",
     "worker_model": "openai/gpt-oss-120b",
     "worker_mode": "rag",
-    "latency_ms": 1579,
+    "latency_ms": 35510,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
       {
-        "chunk_id": "booking-policies::001",
-        "section": "What VoyageFlow Can Guarantee",
-        "score": 0.9858,
-        "keyword_score": 6,
-        "vector_score": 0.3392,
-        "rerank_score": 0.0006,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "travel-insurance::001",
-        "section": "What Travel Insurance Typically Covers",
-        "score": 0.9415,
-        "keyword_score": 6,
-        "vector_score": 0.3083,
-        "rerank_score": 0.0004,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "booking-policies::002",
-        "section": "What VoyageFlow Cannot Guarantee",
-        "score": 0.9188,
-        "keyword_score": 6,
-        "vector_score": 0.2924,
-        "rerank_score": 0.0003,
+        "chunk_id": "voyageflow-overview::004",
+        "section": "Verification and Disclaimers",
+        "score": 0.7258,
+        "keyword_score": 3,
+        "vector_score": 0.3322,
+        "rerank_score": 0.001,
         "retrieval_signal": "hybrid"
       },
       {
@@ -53,16 +35,34 @@
         "score": 0.75,
         "keyword_score": 3,
         "vector_score": 0.3491,
-        "rerank_score": 0.0002,
+        "rerank_score": 0.0006,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "tokyo-spring-guide::001",
-        "section": "Overview",
-        "score": 0.7305,
+        "chunk_id": "booking-policies::004",
+        "section": "Out-of-Scope Topics",
+        "score": 0.5721,
+        "keyword_score": 1,
+        "vector_score": 0.3413,
+        "rerank_score": 0.0006,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "booking-policies::002",
+        "section": "What VoyageFlow Cannot Guarantee",
+        "score": 0.9188,
+        "keyword_score": 6,
+        "vector_score": 0.2924,
+        "rerank_score": 0.0004,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "voyageflow-overview::001",
+        "section": "What Is VoyageFlow?",
+        "score": 0.7045,
         "keyword_score": 3,
-        "vector_score": 0.3355,
-        "rerank_score": 0.0001,
+        "vector_score": 0.3173,
+        "rerank_score": 0.0004,
         "retrieval_signal": "hybrid"
       }
     ],

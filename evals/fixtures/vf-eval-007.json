@@ -27,7 +27,7 @@
       ]
     },
     {
-      "claim": "Users must confirm all pricing, availability, and policies directly with the booking partner before completing payment.",
+      "claim": "Users must confirm all pricing and availability directly with the booking partner before completing payment.",
       "chunk_ids": [
         "booking-policies::002"
       ]
@@ -47,7 +47,7 @@
     "worker_version": "2.4.0",
     "worker_model": "gemini-2.5-flash",
     "worker_mode": "rag",
-    "latency_ms": 2673,
+    "latency_ms": 650,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
@@ -61,12 +61,21 @@
         "retrieval_signal": "hybrid"
       },
       {
+        "chunk_id": "voyageflow-overview::004",
+        "section": "Verification and Disclaimers",
+        "score": 0.7652,
+        "keyword_score": 12,
+        "vector_score": 0.7614,
+        "rerank_score": 0.9858,
+        "retrieval_signal": "hybrid"
+      },
+      {
         "chunk_id": "tokyo-spring-guide::004",
         "section": "Booking Considerations",
         "score": 0.8192,
         "keyword_score": 15,
         "vector_score": 0.7193,
-        "rerank_score": 0.9858,
+        "rerank_score": 0.933,
         "retrieval_signal": "hybrid"
       },
       {
@@ -75,15 +84,6 @@
         "score": 0.793,
         "keyword_score": 13,
         "vector_score": 0.764,
-        "rerank_score": 0.933,
-        "retrieval_signal": "hybrid"
-      },
-      {
-        "chunk_id": "voyageflow-overview::004",
-        "section": "Verification and Disclaimers",
-        "score": 0.7652,
-        "keyword_score": 12,
-        "vector_score": 0.7614,
         "rerank_score": 0.9132,
         "retrieval_signal": "hybrid"
       },

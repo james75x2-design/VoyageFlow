@@ -1,69 +1,33 @@
 {
   "query": "Tell me about spring travel to Japan's capital",
-  "answer_markdown": "Spring in Tokyo, Japan's capital, spans from March through May and is considered one of the most popular times to visit [tokyo-spring-guide::001]. The season is characterized by cherry blossom (sakura) viewing and mild temperatures, typically ranging from 10–20°C (50–68°F) [tokyo-spring-guide::001]. Peak sakura season usually occurs between late March and early April, though exact dates can vary annually based on weather [tokyo-spring-guide::002]. Top hanami (flower viewing) spots include Ueno Park, Shinjuku Gyoen, Chidorigafuchi, and the Meguro River [tokyo-spring-guide::002].\n\nDue to spring being peak season, several booking considerations are important [tokyo-spring-guide::004]. VoyageFlow recommends booking accommodations 3–6 months in advance for travel in late March and early April [tokyo-spring-guide::001]. Hotel rates in central Tokyo can be 30–50% higher during sakura week [tokyo-spring-guide::004]. Flights from North America and Europe often sell out 2–3 months ahead for late-March travel, and popular ryokan (traditional inns) require booking 4–6 months in advance [tokyo-spring-guide::004]. Securing restaurant reservations at high-demand venues before arrival is also advised [tokyo-spring-guide::004]. A typical 5-day spring itinerary might include exploring Shinjuku, visiting Asakusa and Senso-ji Temple, a Sumida River sakura cruise, experiencing Harajuku and Meiji Shrine, a Yoyogi Park hanami picnic, and a day trip to Kamakura or Nikko [tokyo-spring-guide::003].",
+  "answer_markdown": "Spring in Tokyo (Japan's capital) runs from March through May, featuring cherry blossom (sakura) viewing, mild temperatures of 10–20 °C (50–68 °F), and a packed cultural calendar [tokyo-spring-guide::001]. Peak sakura typically falls between late March and early April, with top hanami spots such as Ueno Park, Shinjuku Gyoen, Chidorigafuchi, and the Meguro River [tokyo-spring-guide::002]. VoyageFlow recommends booking accommodations 3–6 months in advance for late‑March/early‑April travel, as hotel rates in central Tokyo can be 30–50 % higher during sakura week, flights from North America and Europe often sell out 2–3 months ahead, popular ryokan require 4–6 months booking, and restaurant reservations at high‑demand venues should be secured before arrival [tokyo-spring-guide::001][tokyo-spring-guide::004]. A typical 5‑day spring itinerary includes arrival and Shinjuku exploration, Asakusa and a Sumida River sakura cruise, Harajuku and a Yoyogi Park hanami picnic, a day‑trip to Kamakura or Nikko, and a final day at Ueno Park and the museum district [tokyo-spring-guide::003].",
   "citations": [
     {
-      "claim": "Spring in Tokyo runs from March through May and is one of the most popular times to visit.",
+      "claim": "Spring in Tokyo runs from March through May with cherry blossom viewing and mild temperatures.",
       "chunk_ids": [
         "tokyo-spring-guide::001"
       ]
     },
     {
-      "claim": "The season is defined by cherry blossom (sakura) viewing and mild temperatures (10–20°C / 50–68°F).",
-      "chunk_ids": [
-        "tokyo-spring-guide::001"
-      ]
-    },
-    {
-      "claim": "Peak sakura typically falls between late March and early April, though exact dates shift year to year based on weather.",
+      "claim": "Peak sakura falls between late March and early April, with top hanami spots listed.",
       "chunk_ids": [
         "tokyo-spring-guide::002"
       ]
     },
     {
-      "claim": "Top hanami (flower viewing) spots include Ueno Park, Shinjuku Gyoen, Chidorigafuchi, and the Meguro River.",
-      "chunk_ids": [
-        "tokyo-spring-guide::002"
-      ]
-    },
-    {
-      "claim": "Spring is peak season, and VoyageFlow flags several booking constraints.",
-      "chunk_ids": [
-        "tokyo-spring-guide::004"
-      ]
-    },
-    {
-      "claim": "VoyageFlow recommends booking accommodations 3–6 months in advance for late March and early April travel.",
+      "claim": "VoyageFlow recommends booking accommodations 3–6 months in advance for late-March/early-April travel.",
       "chunk_ids": [
         "tokyo-spring-guide::001"
       ]
     },
     {
-      "claim": "Hotel rates in central Tokyo (Shinjuku, Shibuya, Ginza) can be 30–50% higher during sakura week.",
+      "claim": "Hotel rates can be 30–50% higher during sakura week, flights sell out 2–3 months ahead, ryokan need 4–6 months booking, and restaurant reservations should be secured before arrival.",
       "chunk_ids": [
         "tokyo-spring-guide::004"
       ]
     },
     {
-      "claim": "Flights from North America and Europe often sell out 2–3 months ahead for late-March travel.",
-      "chunk_ids": [
-        "tokyo-spring-guide::004"
-      ]
-    },
-    {
-      "claim": "Popular ryokan (traditional inns) require booking 4–6 months in advance.",
-      "chunk_ids": [
-        "tokyo-spring-guide::004"
-      ]
-    },
-    {
-      "claim": "Restaurant reservations at high-demand venues should be secured before arrival.",
-      "chunk_ids": [
-        "tokyo-spring-guide::004"
-      ]
-    },
-    {
-      "claim": "A typical VoyageFlow-generated 5-day Tokyo spring itinerary covers: Day 1: Arrival, Shinjuku exploration, evening at Omoide Yokocho; Day 2: Asakusa, Senso-ji Temple, Sumida River sakura cruise; Day 3: Harajuku, Meiji Shrine, Yoyogi Park hanami picnic; Day 4: Day trip to Kamakura or Nikko for temple visits and gardens; Day 5: Ueno Park, museum district, departure.",
+      "claim": "A typical 5‑day spring itinerary includes Shinjuku, Asakusa, Harajuku, a day‑trip to Kamakura or Nikko, and Ueno Park.",
       "chunk_ids": [
         "tokyo-spring-guide::003"
       ]
@@ -81,9 +45,9 @@
   "debug": {
     "pipeline": "worker_rag",
     "worker_version": "2.4.0",
-    "worker_model": "gemini-2.5-flash",
+    "worker_model": "openai/gpt-oss-120b",
     "worker_mode": "rag",
-    "latency_ms": 7643,
+    "latency_ms": 703,
     "retrieval_signal": "hybrid",
     "ranking_signal": "reranker",
     "chunks_used": [
@@ -97,30 +61,30 @@
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "tokyo-spring-guide::004",
-        "section": "Booking Considerations",
-        "score": 0.9514,
-        "keyword_score": 6,
-        "vector_score": 0.6661,
-        "rerank_score": 0.0269,
-        "retrieval_signal": "hybrid"
-      },
-      {
         "chunk_id": "tokyo-spring-guide::003",
         "section": "Suggested Spring Itinerary",
         "score": 0.8184,
         "keyword_score": 4,
         "vector_score": 0.7159,
+        "rerank_score": 0.0269,
+        "retrieval_signal": "hybrid"
+      },
+      {
+        "chunk_id": "tokyo-spring-guide::004",
+        "section": "Booking Considerations",
+        "score": 0.9514,
+        "keyword_score": 6,
+        "vector_score": 0.6661,
         "rerank_score": 0.0067,
         "retrieval_signal": "hybrid"
       },
       {
-        "chunk_id": "booking-policies::004",
-        "section": "Out-of-Scope Topics",
-        "score": 0.7897,
-        "keyword_score": 6,
-        "vector_score": 0.4275,
-        "rerank_score": 0.0001,
+        "chunk_id": "booking-policies::003",
+        "section": "Verifying Information Before Booking",
+        "score": 0.3196,
+        "keyword_score": 0,
+        "vector_score": 0.4716,
+        "rerank_score": 0.0002,
         "retrieval_signal": "hybrid"
       },
       {
@@ -129,7 +93,7 @@
         "score": 0.6462,
         "keyword_score": 3,
         "vector_score": 0.5847,
-        "rerank_score": 0,
+        "rerank_score": 0.0001,
         "retrieval_signal": "hybrid"
       }
     ],
